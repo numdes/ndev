@@ -9,10 +9,5 @@ dependencies = [
 ]
 scripts = {ndev = "ndev.app:main"}
 
-[tool.uv]
-index-url = "https://pypi.org/simple"
-dev-dependencies = [
-    "mypy>=1.11.2",
-    "pytest>=8.3.3",
-    "ruff>=0.6.8",
-]
+[tool.ndev]
+release_root = "release_root"
