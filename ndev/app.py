@@ -8,3 +8,7 @@ def main() -> int:
     app.add(ReleaseCommand())
     exit_code = app.run()
     return exit_code
+
+
+if __name__ == "__main__":
+    main()
