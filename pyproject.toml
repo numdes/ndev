@@ -5,5 +5,8 @@ description = "Python projects management toolset"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-
+    "cleo",
 ]
+
+[tool.uv]
+index-url = "https://pypi.org/simple"
