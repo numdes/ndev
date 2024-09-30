@@ -11,3 +11,6 @@ scripts = {ndev = "ndev.app:main"}
 
 [tool.uv]
 index-url = "https://pypi.org/simple"
+dev-dependencies = [
+    "ruff>=0.6.8",
+]
