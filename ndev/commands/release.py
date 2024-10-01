@@ -57,6 +57,11 @@ class ReleaseCommand(Command):
 
     def copy_local_files(self):
         self.line("Copying local files.", verbosity=Verbosity.NORMAL)
+        if "common_ignores" in self.ndev_config:
+            ignore_paths = self.ndev_config["common_ignores"]
+        else:
+            ignore_paths = []
+
         for copy_item in self.ndev_config["copy-local"]:
             self.line(
                 f"Copying {copy_item['from']} to {copy_item['to']}.", verbosity=Verbosity.VERBOSE
@@ -68,15 +73,35 @@ class ReleaseCommand(Command):
                 return os.EX_NOINPUT
 
             dst_path = SOURCES_DIR / copy_item["to"]
+
+            item_ignores = ignore_paths.copy()
+            if "except" in copy_item:
+                item_ignores += copy_item["except"]
+
             shutil.copytree(
                 src=src_path,
                 dst=dst_path,
                 dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns("__pycache__"),
+                ignore=shutil.ignore_patterns(*item_ignores),
                 copy_function=shutil.copy2,
             )
 
+        if "file_replace_prefix" in self.ndev_config:
+            for path in SOURCES_DIR.rglob("*"):
+                if path.is_file():
+                    if path.name.startswith(self.ndev_config["file_replace_prefix"]):
+                        new_name = path.name.replace(self.ndev_config["file_replace_prefix"], "")
+                        new_path = path.parent / new_name
+                        shutil.move(path, new_path)
+
     def generate_requirements_txt(self):
+        if "copy_requirements" not in self.ndev_config or not self.ndev_config["copy_requirements"]:
+            self.line(
+                text="copy_requirements = false. Skipping requirements.txt generation.",
+                verbosity=Verbosity.NORMAL,
+            )
+            return
+
         self.line("Generating requirements.txt.", verbosity=Verbosity.NORMAL)
         requirements_path = CURRENT_DIR / "requirements.txt"
         if not requirements_path.exists():
@@ -103,12 +128,18 @@ class ReleaseCommand(Command):
                     if (not line.startswith("--") and len(line) > 0)
                 ]
                 requirements_path.write_text("\n".join(requirement_lines))
-        if self.ndev_config["copy_requirements"]:
-            shutil.copy2(src=requirements_path, dst=SOURCES_DIR / "requirements.txt")
 
+        shutil.copy2(src=requirements_path, dst=SOURCES_DIR / "requirements.txt")
         self.requirements_txt_list = requirements_path.read_text(encoding="utf8").splitlines()
 
     def download_wheels(self):
+        if "copy-wheel-src" not in self.ndev_config:
+            self.line(
+                text="No 'copy-wheel-src' section in ndev configuration. Skipping wheels downloading.",
+                verbosity=Verbosity.VERBOSE,
+            )
+            return
+
         self.line(text="Downloading wheels: ", verbosity=Verbosity.NORMAL)
 
         for copy_item in self.ndev_config["copy-wheel-src"]:
@@ -152,6 +183,12 @@ class ReleaseCommand(Command):
                 self.line(result.stdout)
 
     def copy_wheels_sources(self):
+        if "copy-wheel-src" not in self.ndev_config:
+            self.line(
+                text="No 'copy-wheel-src' section in ndev configuration. Skipping wheel sources copying.",
+                verbosity=Verbosity.VERBOSE,
+            )
+            return
         self.line(text=f"Copying wheel sources to {SOURCES_DIR}.", verbosity=Verbosity.NORMAL)
         all_wheels_files = list(WHEELS_DIR.glob("*.whl")) + list(WHEELS_DIR.glob("*.tar.gz"))
 
