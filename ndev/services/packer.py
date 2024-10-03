@@ -44,21 +44,22 @@ class PackerSchema(BaseModel):
 
         schema = PackerSchema(
             from_dir=from_dir,
-            release_root=project_dict["tool"]["ndev"]["release_root"],
+            release_root=project_dict["tool"]["ndev"]["release-root"],
         )
-        if "common_ignores" in project_dict["tool"]["ndev"]:
-            schema.common_ignores = project_dict["tool"]["ndev"]["common_ignores"]
-        if "copy_local" in project_dict["tool"]["ndev"]:
+
+        if "common-ignores" in project_dict["tool"]["ndev"]:
+            schema.common_ignores = project_dict["tool"]["ndev"]["common-ignores"]
+        if "copy-local" in project_dict["tool"]["ndev"]:
             schema.copy_local = [
-                CopyItem(**item) for item in project_dict["tool"]["ndev"]["copy_local"]
+                CopyItem(**item) for item in project_dict["tool"]["ndev"]["copy-local"]
             ]
-        if "copy_wheel_src" in project_dict["tool"]["ndev"]:
+        if "copy-wheel-src" in project_dict["tool"]["ndev"]:
             schema.copy_wheel_src = [
-                CopyItem(**item) for item in project_dict["tool"]["ndev"]["copy_wheel_src"]
+                CopyItem(**item) for item in project_dict["tool"]["ndev"]["copy-wheel-src"]
             ]
-        if "copy_repo_src" in project_dict["tool"]["ndev"]:
+        if "copy-repo-src" in project_dict["tool"]["ndev"]:
             schema.copy_repo_src = [
-                CopyItem(**item) for item in project_dict["tool"]["ndev"]["copy_repo_src"]
+                CopyItem(**item) for item in project_dict["tool"]["ndev"]["copy-repo-src"]
             ]
         return schema
 
