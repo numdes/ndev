@@ -22,7 +22,6 @@ class CopyItem(BaseModel):
     ignores: list[str] = Field(default_factory=list)
 
     ref: str | None = None
-    extra: list[str] = Field(default_factory=list)
 
 
 class PackerSchema(BaseModel):
@@ -286,21 +285,9 @@ class Packer:
             copytree_from_zip(
                 zip_path=wheel_file,
                 dst_dir=self.schema.to_dir / copy_item.destination,
-                path_in_zip=copy_item.origin,
-                ignore=shutil.ignore_patterns("*.so"),
+                path_in_zip=".",
+                ignore=shutil.ignore_patterns("*.so", "*.dist-info", "*.so.*"),
             )
-            if copy_item.extra:
-                for extra_item in copy_item.extra:
-                    self.out(
-                        message=f"Copying {extra_item} to {self.schema.to_dir / copy_item.destination}.",
-                        verbosity=Verbosity.VERBOSE.value,
-                    )
-                    copytree_from_zip(
-                        zip_path=wheel_file,
-                        dst_dir=self.schema.to_dir / copy_item.destination,
-                        path_in_zip=extra_item,
-                        ignore=shutil.ignore_patterns("*.so"),
-                    )
 
     def copy_repo_sources(self):
         if not self.schema.copy_repo_src:
