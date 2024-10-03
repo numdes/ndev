@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "cleo",
+    "pydantic>=2.9.2",
 ]
 scripts = {ndev = "ndev.app:main"}
 
@@ -18,4 +19,11 @@ dev-dependencies = [
     "mypy>=1.11.2",
     "pytest>=8.3.3",
     "ruff>=0.6.8",
+]
+
+[tool.ndev]
+release_root = "."
+common_ignores = [
+    "__pycache__",
+    ".venv",
 ]
