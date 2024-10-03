@@ -86,6 +86,14 @@ class Packer:
         if self.schema.to_dir is None:
             raise ValueError("to_dir is not set in schema")
 
+        # remove all files and dirs from to_dir except .git
+        for path in self.schema.to_dir.glob("*"):
+            if path.name != ".git":
+                if path.is_file():
+                    path.unlink()
+                else:
+                    shutil.rmtree(path)
+
         self.copy_root()
         self.copy_local_files()
         self.generate_requirements_txt()
