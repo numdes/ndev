@@ -49,7 +49,10 @@ class PackerSchema(BaseModel):
             from_dir=from_dir,
             release_root=project_dict["tool"]["ndev"]["release-root"],
         )
-
+        if "copy-requirements" in project_dict["tool"]["ndev"]:
+            schema.copy_requirements_txt = project_dict["tool"]["ndev"]["copy-requirements"]
+        if "file-replace-prefix" in project_dict["tool"]["ndev"]:
+            schema.file_replace_prefix = project_dict["tool"]["ndev"]["file-replace-prefix"]
         if "common-ignores" in project_dict["tool"]["ndev"]:
             schema.common_ignores = project_dict["tool"]["ndev"]["common-ignores"]
         if "copy-local" in project_dict["tool"]["ndev"]:
