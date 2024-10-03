@@ -13,6 +13,8 @@ from ndev.services.listener import Listener
 from ndev.services.listener import NULL_LISTENER
 from ndev.shutil_ext import copytree_from_zip
 
+_SKIP_NUKE_DIRS = {".git", ".idea"}
+
 
 class CopyItem(BaseModel):
     origin: str = Field(alias="from")
@@ -88,7 +90,7 @@ class Packer:
 
         # remove all files and dirs from to_dir except .git
         for path in self.schema.to_dir.glob("*"):
-            if path.name != ".git":
+            if path.name not in _SKIP_NUKE_DIRS:
                 if path.is_file():
                     path.unlink()
                 else:
