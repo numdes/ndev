@@ -3,9 +3,21 @@ from pathlib import Path
 
 from cleo.commands.command import Command
 from cleo.helpers import option
+from cleo.io.io import IO
+from cleo.io.outputs.output import Verbosity
 
+from ndev.services.listener import Listener
 from ndev.services.packer import Packer
 from ndev.services.packer import PackerSchema
+
+
+class CommandListener(Listener):
+    def __init__(self, io: IO) -> None:
+        super().__init__()
+        self.io = io
+
+    def message(self, message: str, verbosity: int = 32) -> None:
+        self.io.write_line(message, Verbosity(verbosity))
 
 
 class ReleaseCommand(Command):
@@ -43,5 +55,5 @@ class ReleaseCommand(Command):
 
         schema.to_dir = Path(self.option("destination"))
 
-        packer = Packer(schema=schema)
+        packer = Packer(schema=schema, listener=CommandListener(self.io))
         return packer.pack()
