@@ -286,7 +286,7 @@ class Packer:
                 zip_path=wheel_file,
                 dst_dir=self.schema.to_dir / copy_item.destination,
                 path_in_zip=".",
-                ignore=shutil.ignore_patterns("*.so", "*.dist-info", "*.so.*"),
+                ignore=shutil.ignore_patterns("*.so", "*.dist-info", "*.so.*", "*.libs"),
             )
 
     def copy_repo_sources(self):
