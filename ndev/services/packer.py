@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import tempfile
 import tomllib
 from pathlib import Path
 
@@ -17,6 +18,8 @@ class CopyItem(BaseModel):
     origin: str = Field(alias="from")
     destination: str = Field(alias="to")
     ignores: list[str] = Field(default_factory=list)
+
+    ref: str | None = None
 
 
 class PackerSchema(BaseModel):
@@ -287,6 +290,28 @@ class Packer:
                 message=f"Copying repo source {copy_item.origin} to {copy_item.destination}.",
                 verbosity=Verbosity.VERBOSE.value,
             )
+            repo_url, repo_ref = copy_item.origin, copy_item.ref
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                result = subprocess.run(
+                    f"git clone --branch {repo_ref} --depth 1 {repo_url} {tmp_dir}",
+                    shell=True,
+                    capture_output=True,
+                    text=True,
+                )
+                if result.returncode != os.EX_OK:
+                    self.out(f"Failed to clone repo {repo_url}.")
+                    self.out(result.stdout)
+                    self.out(result.stderr)
+                    return result.returncode
+
+                schema = PackerSchema.load_from_dir(Path(tmp_dir))
+                schema.to_dir = self.schema.to_dir / copy_item.destination
+                schema.copy_repo_src = []  # prevent recursion
+                packer = Packer(
+                    schema=schema,
+                    listener=self.out,
+                )
+                packer.pack()
 
     # -- private methods --
 

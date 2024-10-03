@@ -11,3 +11,6 @@ scripts = {ndev = "ndev.app:main"}
 
 [tool.ndev]
 release_root = "."
+copy-repo-src = [
+    {from = "git@github.com:numdes/ndev.git", to = "libs/ndev", ref = "main"},
+]
