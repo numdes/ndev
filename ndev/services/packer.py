@@ -15,6 +15,7 @@ from ndev.services.listener import NULL_LISTENER
 from ndev.shutil_ext import copytree_from_zip
 
 _SKIP_NUKE_DIRS = {".git", ".idea"}
+_BASE_WHEEL_IGNORES = ["*.so", "*.dist-info", "*.so.*", "*.libs"]
 
 
 class CopyItem(BaseModel):
@@ -358,11 +359,13 @@ class Packer:
                 message=f"Copying {wheel_file} to {self.schema.destination_dir / copy_item.destination}.",
                 verbosity=Verbosity.VERBOSE.value,
             )
+            _ignores = _BASE_WHEEL_IGNORES.copy()
+            _ignores += copy_item.ignores
             copytree_from_zip(
                 zip_path=wheel_file,
                 dst_dir=self.schema.destination_dir / copy_item.destination,
                 path_in_zip=".",
-                ignore=shutil.ignore_patterns("*.so", "*.dist-info", "*.so.*", "*.libs"),
+                ignore=shutil.ignore_patterns(*_ignores),
             )
         self.wheels_dir.cleanup()
 
