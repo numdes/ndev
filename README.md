@@ -5,6 +5,18 @@ Set of tools that helps to manage development lifecycle. This set contains tools
 - [managing releases](#release-management)
 - _work in progress..._
 
+To install `ndev` run:
+
+```bash
+pipx install ndev
+```
+
+To update `ndev` run:
+
+```bash
+pipx upgrade ndev
+```
+
 ## Release management
 
 When you have a big repository with complicated structure and you want to 
