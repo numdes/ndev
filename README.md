@@ -15,7 +15,7 @@ Basic use case is to transfer some sources codes to antoher repository:
 ```bash
     ndev release \
         --origin . \
-        --destination git@gitlab.numdes.com:gpn_releases/infra-release-playground.git \
+        --destination git@example.com:libs/example1.git \
         --author_name "$GITLAB_USER_NAME" \
         --author_email "$GITLAB_USER_EMAIL"
 ```
