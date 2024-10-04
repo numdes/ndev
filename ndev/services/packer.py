@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import tempfile
 import tomllib
+from fnmatch import fnmatch
 from pathlib import Path
 
 from cleo.io.outputs.output import Verbosity
@@ -37,6 +38,7 @@ class PackerSchema(BaseModel):
 
     file_replace_prefix: str | None = Field(None)
     copy_requirements_txt: bool = Field(False)
+    filter_requirements_txt_matches: list[str] = Field(default_factory=list)
     add_version_json: bool = Field(False)
     version_str: str | None = Field(None)
 
@@ -81,6 +83,10 @@ class PackerSchema(BaseModel):
                 schema.version_str = project_dict["tool"]["poetry"]["version"]
             if "project" in project_dict and "version" in project_dict["project"]:
                 schema.version_str = project_dict["project"]["version"]
+        if "filter-requirements-txt-matches" in project_dict["tool"]["ndev"]:
+            schema.filter_requirements_txt_matches = project_dict["tool"]["ndev"][
+                "filter-requirements-txt-matches"
+            ]
         return schema
 
 
@@ -255,17 +261,21 @@ class Packer:
                 self.out(result.stdout)
                 self.out(result.stderr)
                 return os.EX_NOINPUT
-            else:
-                # filter out index-url and empty lines
-                requirement_lines = requirements_path.read_text(encoding="utf8").splitlines()
-                requirement_lines = [
-                    line
-                    for line in requirement_lines
-                    if (not line.startswith("--") and len(line) > 0)
-                ]
-                requirements_path.write_text("\n".join(requirement_lines))
 
-        shutil.copy2(src=requirements_path, dst=self.schema.destination_dir / "requirements.txt")
+        # filter out index-url and empty lines
+        requirement_lines = requirements_path.read_text(encoding="utf8").splitlines()
+        _filtered_lines = []
+        for line in requirement_lines:
+            if len(line.strip()) == 0:
+                continue
+            good_line = True
+            for match in self.schema.filter_requirements_txt_matches:
+                if fnmatch(line, match):
+                    good_line = False
+                    break
+            if good_line:
+                _filtered_lines.append(line)
+        (self.schema.destination_dir / "requirements.txt").write_text("\n".join(_filtered_lines))
 
     def download_wheels(self):
         if not self.schema.copy_wheel_src:
