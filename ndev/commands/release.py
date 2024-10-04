@@ -28,13 +28,25 @@ class ReleaseCommand(Command):
         option(
             long_name="destination",
             short_name="O",
-            description="Directory to save files to.",
+            description="Directory or git repo to save files to.",
             flag=False,
         ),
         option(
             long_name="origin",
             short_name="I",
             description="Directory to load files from.",
+            flag=False,
+        ),
+        option(
+            long_name="author_email",
+            short_name="A",
+            description="Author email.",
+            flag=False,
+        ),
+        option(
+            long_name="author_name",
+            short_name="N",
+            description="Author name.",
             flag=False,
         ),
     ]
@@ -53,7 +65,16 @@ class ReleaseCommand(Command):
         except FileNotFoundError:
             return os.EX_NOINPUT
 
-        schema.to_dir = Path(self.option("destination"))
+        destination = self.option("destination")
+        if destination.startswith("git@"):
+            schema.destination_repo = destination
+        else:
+            schema.destination_dir = Path(destination)
+
+        if self.option("author_email") is not None:
+            schema.author_email = self.option("author_email")
+        if self.option("author_name") is not None:
+            schema.author_name = self.option("author_name")
 
         packer = Packer(schema=schema, listener=CommandListener(self.io))
         return packer.pack()
