@@ -40,6 +40,7 @@ class PackerSchema(BaseModel):
     file_replace_prefix: str | None = Field(None)
     copy_requirements_txt: bool = Field(False)
     filter_requirements_txt_matches: list[str] = Field(default_factory=list)
+    install_dependencies_with_groups: list[str] = Field(default_factory=list)
     add_version_json: bool = Field(False)
     version_str: str | None = Field(None)
 
@@ -87,6 +88,10 @@ class PackerSchema(BaseModel):
         if "filter-requirements-txt-matches" in project_dict["tool"]["ndev"]:
             schema.filter_requirements_txt_matches = project_dict["tool"]["ndev"][
                 "filter-requirements-txt-matches"
+            ]
+        if "install-dependencies-with-groups" in project_dict["tool"]["ndev"]:
+            schema.install_dependencies_with_groups = project_dict["tool"]["ndev"][
+                "install-dependencies-with-groups"
             ]
         return schema
 
@@ -243,13 +248,15 @@ class Packer:
             )
             return os.EX_OK
 
+
         self.out("Generating requirements.txt.", verbosity=Verbosity.NORMAL.value)
         requirements_path = self.schema.origin / "requirements.txt"
         if not requirements_path.exists():
+            groups = ",".join(self.schema.install_dependencies_with_groups)
             result = subprocess.run(
                 "poetry export "
                 "--without-hashes "
-                "--with dev "
+                f"--with {groups}" if groups else ""
                 "--format requirements.txt "
                 "--output requirements.txt",
                 shell=True,
