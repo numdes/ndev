@@ -257,12 +257,12 @@ class Packer:
         requirements_path = self.schema.origin / "requirements.txt"
         if not requirements_path.exists():
             groups = ",".join(self.schema.install_dependencies_with_groups)
-            with_group = f"--with {groups} " if groups else ""
+            with_groups = f"--with {groups} " if groups else ""
 
             result = subprocess.run(
                 "poetry export "
                 "--without-hashes "
-                f"{with_group}"
+                f"{with_groups}"
                 "--format requirements.txt "
                 "--output requirements.txt",
                 shell=True,
