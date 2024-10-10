@@ -222,13 +222,17 @@ class Packer:
             item_ignores = self.schema.common_ignores.copy()
             item_ignores += copy_item.ignores
 
-            shutil.copytree(
-                src=src_path,
-                dst=dst_path,
-                dirs_exist_ok=True,
-                ignore=shutil.ignore_patterns(*item_ignores),
-                copy_function=shutil.copy2,
-            )
+            if src_path.is_file():
+                os.makedirs(dst_path, exist_ok=True)
+                shutil.copy2(src_path, dst_path)
+            else:
+                shutil.copytree(
+                    src=src_path,
+                    dst=dst_path,
+                    dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns(*item_ignores),
+                    copy_function=shutil.copy2,
+                )
 
         if self.schema.file_replace_prefix:
             for path in self.schema.destination_dir.rglob("*"):
@@ -256,7 +260,7 @@ class Packer:
             result = subprocess.run(
                 "poetry export "
                 "--without-hashes "
-                f"--with {groups}" if groups else ""
+                f"--with {groups} " if groups else ""
                 "--format requirements.txt "
                 "--output requirements.txt",
                 shell=True,
