@@ -11,6 +11,4 @@ scripts = {ndev = "ndev.app:main"}
 
 [tool.ndev]
 release-root = "."
-copy-repo-src = [
-    {from = "git@github.com:numdes/ndev.git", to = "libs/ndev", ref = "main"},
-]
+remove-todo = true

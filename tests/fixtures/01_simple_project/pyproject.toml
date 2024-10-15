@@ -10,4 +10,4 @@ dependencies = [
 scripts = {ndev = "ndev.app:main"}
 
 [tool.ndev]
-release_root = "release_root"
+release-root = "release_root"
