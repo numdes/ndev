@@ -22,8 +22,8 @@ dev-dependencies = [
 ]
 
 [tool.ndev]
-release_root = "."
-common_ignores = [
+release-root = "."
+common-ignores = [
     "__pycache__",
     ".venv",
 ]
