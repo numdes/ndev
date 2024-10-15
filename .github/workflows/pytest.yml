@@ -6,21 +6,37 @@ on:
       - '**'  # This will run the workflow for any push to any branch
 
 jobs:
-  test:
+  pytest:
+    env:
+      UV_CACHE_DIR: /tmp/.uv-cache
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'  # Specify your Python version here
+          python-version-file: "pyproject.toml"
 
-      - name: Run PyTest
-        run: |
-          pip install uv
-          uv sync
-          pip install pytest
-          PYTHONPATH=$(pwd) pytest
+      - name: Restore uv cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.uv-cache
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+            uv-${{ runner.os }}
+
+      - name: Install the project
+        run: uv sync --all-extras --dev
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
+
+      - name: Run tests
+        run: uv run pytest tests
