@@ -1,9 +1,11 @@
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 import tomllib
 from fnmatch import fnmatch
+from functools import partial
 from pathlib import Path
 
 from cleo.io.outputs.output import Verbosity
@@ -39,6 +41,7 @@ class PackerSchema(BaseModel):
 
     file_replace_prefix: str | None = Field(None)
     copy_requirements_txt: bool = Field(False)
+    remove_todo: bool = Field(False)
     filter_requirements_txt_matches: list[str] = Field(default_factory=list)
     install_dependencies_with_groups: list[str] = Field(default_factory=list)
     add_version_json: bool = Field(False)
@@ -63,6 +66,8 @@ class PackerSchema(BaseModel):
         )
         if "copy-requirements" in project_dict["tool"]["ndev"]:
             schema.copy_requirements_txt = project_dict["tool"]["ndev"]["copy-requirements"]
+        if "remove-todo" in project_dict["tool"]["ndev"]:
+            schema.remove_todo = project_dict["tool"]["ndev"]["remove-todo"]
         if "file-replace-prefix" in project_dict["tool"]["ndev"]:
             schema.file_replace_prefix = project_dict["tool"]["ndev"]["file-replace-prefix"]
         if "common-ignores" in project_dict["tool"]["ndev"]:
@@ -153,6 +158,7 @@ class Packer:
         self.download_wheels()
         self.copy_wheels_sources()
         self.copy_repo_sources()
+        self.remove_todo()
         self.add_version_json()
 
         if self.schema.destination_repo is not None:
@@ -290,6 +296,27 @@ class Packer:
             if good_line:
                 _filtered_lines.append(line)
         (self.schema.destination_dir / "requirements.txt").write_text("\n".join(_filtered_lines))
+
+    def remove_todo(self):
+        if not self.schema.remove_todo:
+            self.out(
+                message="remove_todo = false. Skipping todo removing.",
+                verbosity=Verbosity.VERBOSE.value,
+            )
+            return os.EX_OK
+
+        self.out(message="removing todo: ", verbosity=Verbosity.NORMAL.value)
+
+        for root, _, files in os.walk(self.schema.destination_dir):
+            for filename in filter(lambda x: x.endswith(".py"), files):
+                filepath = os.path.join(root, filename)
+                with open(filepath, 'r', encoding='utf-8') as file:
+                    lines = file.readlines()
+
+                with open(filepath, 'w', encoding='utf-8') as file:
+                    sub = partial(re.sub, r'(#.*)TODO.*$', r'\1')
+                    file.writelines(list(map(sub, lines)))
+
 
     def download_wheels(self):
         if not self.schema.copy_wheel_src:
