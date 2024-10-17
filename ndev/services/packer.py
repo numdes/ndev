@@ -26,6 +26,7 @@ class CopyItem(BaseModel):
     ignores: list[str] = Field(default_factory=list)
 
     ref: str | None = None
+    package_name: str | None = None
 
 
 class PackerSchema(BaseModel):
@@ -305,7 +306,7 @@ class Packer:
             )
             return os.EX_OK
 
-        self.out(message="removing todo: ", verbosity=Verbosity.NORMAL.value)
+        self.out(message="removing todo", verbosity=Verbosity.NORMAL.value)
 
         for root, _, files in os.walk(self.schema.destination_dir):
             for filename in filter(lambda x: x.endswith(".py"), files):
@@ -424,7 +425,20 @@ class Packer:
                 message=f"Copying repo source {copy_item.origin} to {copy_item.destination}.",
                 verbosity=Verbosity.VERBOSE.value,
             )
-            repo_url, repo_ref = copy_item.origin, copy_item.ref
+
+            repo_url, repo_ref, package_name = copy_item.origin, copy_item.ref, copy_item.package_name
+            if package_name:
+                package_name_dep = package_name.replace('_', '-')
+                requirement_line = next((l for l in self._get_requirements_txt_list() if f"{package_name_dep}==" in l))
+                requirement_spec = requirement_line.split(";")[0].strip()
+                package_version = requirement_spec.split("==")[1]
+                repo_ref = repo_ref.replace("$NAME$", package_name)
+                repo_ref = repo_ref.replace("$VERSION$", package_version)
+
+            if "$" in repo_ref:
+                self.out(f"Failed to define branch {copy_item.ref}.")
+                return os.EX_NOINPUT
+
             with tempfile.TemporaryDirectory() as tmp_dir:
                 result = subprocess.run(
                     f"git clone --branch {repo_ref} --depth 1 {repo_url} {tmp_dir}",
