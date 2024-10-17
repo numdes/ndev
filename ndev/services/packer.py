@@ -432,7 +432,12 @@ class Packer:
                 requirement_line = next((l for l in self._get_requirements_txt_list() if f"{package_name_dep}==" in l))
                 requirement_spec = requirement_line.split(";")[0].strip()
                 package_version = requirement_spec.split("==")[1]
-                repo_ref = f"{package_name}-{package_version}"
+                repo_ref = repo_ref.replace("$NAME$", package_name)
+                repo_ref = repo_ref.replace("$VERSION$", package_version)
+
+            if "$" in repo_ref:
+                self.out(f"Failed to define branch {copy_item.ref}.")
+                return os.EX_NOINPUT
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 result = subprocess.run(
