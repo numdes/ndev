@@ -259,7 +259,6 @@ class Packer:
             )
             return os.EX_OK
 
-
         self.out("Generating requirements.txt.", verbosity=Verbosity.NORMAL.value)
         requirements_path = self.schema.origin / "requirements.txt"
         if not requirements_path.exists():
@@ -311,13 +310,12 @@ class Packer:
         for root, _, files in os.walk(self.schema.destination_dir):
             for filename in filter(lambda x: x.endswith(".py"), files):
                 filepath = os.path.join(root, filename)
-                with open(filepath, 'r', encoding='utf-8') as file:
+                with open(filepath, "r", encoding="utf-8") as file:
                     lines = file.readlines()
 
-                with open(filepath, 'w', encoding='utf-8') as file:
-                    sub = partial(re.sub, r'(#.*)TODO.*$', r'\1')
+                with open(filepath, "w", encoding="utf-8") as file:
+                    sub = partial(re.sub, r"(#.*)TODO.*$", r"\1")
                     file.writelines(list(map(sub, lines)))
-
 
     def download_wheels(self):
         if not self.schema.copy_wheel_src:
@@ -332,6 +330,7 @@ class Packer:
         for copy_item in self.schema.copy_wheel_src:
             wheel_name = copy_item.origin
             wheel_name = wheel_name.replace("_", "-")
+            self.out(message=f"Downloading wheel: {wheel_name}", verbosity=Verbosity.VERBOSE.value)
             requirement_spec = next(
                 (line for line in self._get_requirements_txt_list() if f"{wheel_name}==" in line),
                 None,
@@ -426,10 +425,19 @@ class Packer:
                 verbosity=Verbosity.VERBOSE.value,
             )
 
-            repo_url, repo_ref, package_name = copy_item.origin, copy_item.ref, copy_item.package_name
+            repo_url, repo_ref, package_name = (
+                copy_item.origin,
+                copy_item.ref,
+                copy_item.package_name,
+            )
             if package_name:
-                package_name_dep = package_name.replace('_', '-')
-                requirement_line = next((l for l in self._get_requirements_txt_list() if f"{package_name_dep}==" in l))
+                package_name_dep = package_name.replace("_", "-")
+                requirement_line = next(
+                    (x for x in self._get_requirements_txt_list() if f"{package_name_dep}==" in x)
+                )
+                if not requirement_line:
+                    self.out(f"Failed to find requirement {package_name_dep}.")
+                    return os.EX_NOINPUT
                 requirement_spec = requirement_line.split(";")[0].strip()
                 package_version = requirement_spec.split("==")[1]
                 repo_ref = repo_ref.replace("$NAME$", package_name)
