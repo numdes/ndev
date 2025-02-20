@@ -1,5 +1,6 @@
 import os
 import tempfile
+
 from pathlib import Path
 
 from cleo.application import Application
@@ -47,9 +48,8 @@ def test_remove_todo(fixtures_dir: Path) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         status_code = tester.execute(f" --origin {origin_dir} --destination={tmp_dir}")
         for py_file in Path(tmp_dir).rglob("*.py"):
-            with open(py_file, "r") as f:
-                content = f.read()
-                assert "TODO" not in content
+            content = py_file.read_text()
+            assert "TODO" not in content
 
     assert status_code == os.EX_OK
 
@@ -67,8 +67,6 @@ def test_leave_todo(fixtures_dir: Path) -> None:
     with tempfile.TemporaryDirectory() as tmp_dir:
         tester.execute(f" --origin {origin_dir} --destination={tmp_dir}")
         for py_file in Path(tmp_dir).rglob("*.py"):
-            with open(py_file, "r") as f:
-                content = f.read()
-                if "TODO" in content:
-                    at_least_one_todo = True
+            if "TODO" in py_file.read_text():
+                at_least_one_todo = True
     assert at_least_one_todo, "At least one TODO should be left in the code"

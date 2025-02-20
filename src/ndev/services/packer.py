@@ -2,8 +2,9 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
-import tomllib
+
 from fnmatch import fnmatch
 from functools import partial
 from pathlib import Path
@@ -12,12 +13,18 @@ from cleo.io.outputs.output import Verbosity
 from pydantic import BaseModel
 from pydantic import Field
 
-from ndev.services.listener import Listener
 from ndev.services.listener import NULL_LISTENER
+from ndev.services.listener import Listener
 from ndev.shutil_ext import copytree_from_zip
+
 
 _SKIP_NUKE_DIRS = {".git", ".idea"}
 _BASE_WHEEL_IGNORES = ["*.so", "*.dist-info", "*.so.*", "*.libs"]
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 
 class CopyItem(BaseModel):
@@ -127,6 +134,7 @@ class Packer:
                 shell=True,
                 capture_output=True,
                 text=True,
+                check=False,
             )
             if result.returncode != os.EX_OK:
                 self.out(f"Failed to clone {self.schema.destination_repo}.")
@@ -138,6 +146,7 @@ class Packer:
                 shell=True,
                 capture_output=True,
                 text=True,
+                check=False,
             )
             if result.returncode != os.EX_OK:
                 self.out(f"Failed to create branch prepare_release_{self.schema.version_str}.")
@@ -176,6 +185,7 @@ class Packer:
                 shell=True,
                 capture_output=True,
                 text=True,
+                check=False,
             )
             if result.returncode != os.EX_OK:
                 self.out("Failed to commit changes.")
@@ -243,11 +253,10 @@ class Packer:
 
         if self.schema.file_replace_prefix:
             for path in self.schema.destination_dir.rglob("*"):
-                if path.is_file():
-                    if path.name.startswith(self.schema.file_replace_prefix):
-                        new_name = path.name.replace(self.schema.file_replace_prefix, "")
-                        new_path = path.parent / new_name
-                        shutil.move(path, new_path)
+                if path.is_file() and path.name.startswith(self.schema.file_replace_prefix):
+                    new_name = path.name.replace(self.schema.file_replace_prefix, "")
+                    new_path = path.parent / new_name
+                    shutil.move(path, new_path)
 
         return os.EX_OK
 
@@ -275,6 +284,7 @@ class Packer:
                 capture_output=True,
                 text=True,
                 cwd=self.schema.origin,
+                check=False,
             )
             if not requirements_path.exists() or result.returncode != os.EX_OK:
                 self.out("Failed to generate requirements.txt.")
@@ -310,7 +320,7 @@ class Packer:
         for root, _, files in os.walk(self.schema.destination_dir):
             for filename in filter(lambda x: x.endswith(".py"), files):
                 filepath = os.path.join(root, filename)
-                with open(filepath, "r", encoding="utf-8") as file:
+                with open(filepath, encoding="utf-8") as file:
                     lines = file.readlines()
 
                 with open(filepath, "w", encoding="utf-8") as file:
@@ -356,6 +366,7 @@ class Packer:
                 capture_output=True,
                 text=True,
                 shell=True,
+                check=False,
             )
 
             if result.returncode != os.EX_OK:
@@ -433,7 +444,7 @@ class Packer:
             if package_name:
                 package_name_dep = package_name.replace("_", "-")
                 requirement_line = next(
-                    (x for x in self._get_requirements_txt_list() if f"{package_name_dep}==" in x)
+                    x for x in self._get_requirements_txt_list() if f"{package_name_dep}==" in x
                 )
                 if not requirement_line:
                     self.out(f"Failed to find requirement {package_name_dep}.")
@@ -453,6 +464,7 @@ class Packer:
                     shell=True,
                     capture_output=True,
                     text=True,
+                    check=False,
                 )
                 if result.returncode != os.EX_OK:
                     self.out(f"Failed to clone repo {repo_url}.")

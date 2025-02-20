@@ -1,5 +1,7 @@
 import os
+
 from pathlib import Path
+from typing import ClassVar
 
 from cleo.commands.command import Command
 from cleo.helpers import option
@@ -24,7 +26,7 @@ class ReleaseCommand(Command):
     name = "release"
     description = "Pack sources from one repository to another."
 
-    options = [
+    options: ClassVar = [
         option(
             long_name="destination",
             short_name="O",

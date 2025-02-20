@@ -8,13 +8,21 @@ Set of tools that helps to manage development lifecycle. This set contains tools
 To install `ndev` run:
 
 ```bash
-pipx install ndev
+uv tool install ndev
 ```
 
 To update `ndev` run:
 
 ```bash
-pipx upgrade ndev
+uv tool upgrade ndev
+```
+
+You can use it to install and debug:
+
+```bash
+git clone https://github.com/numdes/ndev 
+cd ndev
+uv tool install --editable .
 ```
 
 ## Release management
