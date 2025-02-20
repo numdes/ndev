@@ -9,6 +9,7 @@ jobs:
   pytest:
     env:
       UV_CACHE_DIR: /tmp/.uv-cache
+      UV_PREVIEW: 1
 
     runs-on: ubuntu-latest
 
