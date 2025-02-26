@@ -36,7 +36,7 @@ class CopyItem(BaseModel):
     package_name: str | None = None
 
 
-class PackerSchema(BaseModel):
+class ReleaserConf(BaseModel):
     origin: str | Path | None = None
     destination_dir: Path | None = None
     destination_repo: str | None = None
@@ -59,7 +59,7 @@ class PackerSchema(BaseModel):
     author_name: str | None = Field(None)
 
     @staticmethod
-    def load_from_dir(from_dir: Path) -> "PackerSchema":
+    def load_from_dir(from_dir: Path) -> "ReleaserConf":
         pyproject_toml = from_dir / "pyproject.toml"
         if not pyproject_toml.exists():
             raise FileNotFoundError(f"pyproject.toml not found in {from_dir}")
@@ -68,7 +68,7 @@ class PackerSchema(BaseModel):
         if "tool" not in project_dict or "ndev" not in project_dict["tool"]:
             raise ValueError("ndev section not found in pyproject.toml")
 
-        schema = PackerSchema(
+        schema = ReleaserConf(
             origin=from_dir,
             release_root=project_dict["tool"]["ndev"]["release-root"],
         )
@@ -109,12 +109,12 @@ class PackerSchema(BaseModel):
         return schema
 
 
-class Packer:
+class Releaser:
     """
     Service that packs data according given schema
     """
 
-    def __init__(self, schema: PackerSchema, listener: Listener = NULL_LISTENER) -> None:
+    def __init__(self, schema: ReleaserConf, listener: Listener = NULL_LISTENER) -> None:
         super().__init__()
         self.schema = schema
         self.out = listener
@@ -472,10 +472,10 @@ class Packer:
                     self.out(result.stderr)
                     return result.returncode
 
-                schema = PackerSchema.load_from_dir(Path(tmp_dir))
+                schema = ReleaserConf.load_from_dir(Path(tmp_dir))
                 schema.destination_dir = self.schema.destination_dir / copy_item.destination
                 schema.copy_repo_src = []  # prevent recursion
-                packer = Packer(
+                packer = Releaser(
                     schema=schema,
                     listener=self.out,
                 )

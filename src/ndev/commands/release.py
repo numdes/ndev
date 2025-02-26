@@ -7,8 +7,8 @@ from cleo.commands.command import Command
 from cleo.helpers import option
 
 from ndev.impl.listener import CommandListener
-from ndev.services.packer import Packer
-from ndev.services.packer import PackerSchema
+from ndev.services.packer import PackerConf
+from ndev.services.packer import Releaser
 
 
 class ReleaseCommand(Command):
@@ -52,7 +52,7 @@ class ReleaseCommand(Command):
             current_dir = Path.cwd()
 
         try:
-            schema = PackerSchema.load_from_dir(current_dir)
+            schema = PackerConf.load_from_dir(current_dir)
         except FileNotFoundError:
             return os.EX_NOINPUT
 
@@ -67,5 +67,5 @@ class ReleaseCommand(Command):
         if self.option("author_name") is not None:
             schema.author_name = self.option("author_name")
 
-        packer = Packer(schema=schema, listener=CommandListener(self.io))
+        packer = Releaser(schema=schema, listener=CommandListener(self.io))
         return packer.pack()
