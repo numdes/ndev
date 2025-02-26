@@ -7,6 +7,7 @@ from cleo.helpers import option
 
 from ndev.impl.listener import CommandListener
 from ndev.services.git.git_syncer import GitSyncer
+from ndev.services.git.git_syncer_conf import GitSyncerConf
 
 
 class GitSyncCommand(Command):
@@ -36,6 +37,8 @@ class GitSyncCommand(Command):
             )
             return os.EX_USAGE
 
-        git_syncer = GitSyncer(src, dst, listener=CommandListener(self.io))
+        git_sync_conf = GitSyncerConf(src_url=src, dst_url=dst)
+
+        git_syncer = GitSyncer(conf=git_sync_conf, listener=CommandListener(self.io))
         git_syncer.sync()
         return os.EX_OK

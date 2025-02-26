@@ -7,6 +7,8 @@ import pygit2
 from ndev.hx_urllib import extract_basename_from_url
 from ndev.protocols.listener import NULL_LISTENER
 from ndev.protocols.listener import Listener
+from ndev.protocols.verbosity import VERY_VERBOSE
+from ndev.services.git.git_syncer_conf import GitSyncerConf
 
 
 class GitSyncer:
@@ -17,30 +19,32 @@ class GitSyncer:
     The changes should include all commits, branches, and tags from the source repository.
     """
 
-    def __init__(self, src_url: str, dst_url: str, listener: Listener = NULL_LISTENER) -> None:
+    def __init__(self, conf: GitSyncerConf, listener: Listener = NULL_LISTENER) -> None:
         self.listener = listener
-        self.src = src_url
-        self.dst = dst_url
+        self.conf = conf
 
     def sync(self) -> None:
-        # Determine a local directory name for cloning based on the src URL.
-        repo_name = extract_basename_from_url(self.src)
+        self.listener.message(
+            f"Syncing repo {self.conf.src_url} to {self.conf.dst_url}", VERY_VERBOSE
+        )
+
+        repo_name = extract_basename_from_url(self.conf.src_url)
         clone_path = Path.cwd() / repo_name
         if clone_path.exists():
             self.listener.message(f"Removing existing directory {clone_path}")
             shutil.rmtree(clone_path)
 
-        self.listener.message(f"Cloning {self.src} into {clone_path}")
-        repo = pygit2.clone_repository(self.src, clone_path)
+        self.listener.message(f"Cloning {self.conf.src_url} into {clone_path}")
+        repo = pygit2.clone_repository(self.conf.src_url, clone_path)
 
         # Add the destination repository as a remote named "destination"
         remote_name = "destination"
         if remote_name in repo.remotes:
             self.listener.message(f"Remote '{remote_name}' already exists. Updating URL.")
-            repo.remotes.set_url(remote_name, self.dst)
+            repo.remotes.set_url(remote_name, self.conf.dst_url)
         else:
-            self.listener.message(f"Adding remote '{remote_name}' with URL {self.dst}")
-            repo.remotes.create(remote_name, self.dst)
+            self.listener.message(f"Adding remote '{remote_name}' with URL {self.conf.dst_url}")
+            repo.remotes.create(remote_name, self.conf.dst_url)
 
         # Prepare refspecs for all branches and tags.
         refspecs = [
