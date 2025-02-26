@@ -23,3 +23,5 @@ class GitSyncerConf(BaseModel):
         default_factory=lambda: Path("~/.ssh/id_rsa.pub").expanduser()
     )
     dst_passphrase: str = Field(default="")
+
+    branches_list: list[str] = Field(default_factory=list)

@@ -25,6 +25,11 @@ class GitSyncCommand(Command):
             description="Destination git repository.",
             flag=False,
         ),
+        option(
+            long_name="branches",
+            description="Branches to sync.",
+            flag=False,
+        ),
     ]
 
     def handle(self) -> int:
@@ -37,7 +42,14 @@ class GitSyncCommand(Command):
             )
             return os.EX_USAGE
 
-        git_sync_conf = GitSyncerConf(src_url=src, dst_url=dst)
+        branches = self.option("branches")
+        branches_list = branches.split(",") if branches else []
+
+        git_sync_conf = GitSyncerConf(
+            src_url=src,
+            dst_url=dst,
+            branches_list=branches_list,
+        )
 
         git_syncer = GitSyncer(conf=git_sync_conf, listener=CommandListener(self.io))
         git_syncer.sync()

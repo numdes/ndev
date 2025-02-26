@@ -45,15 +45,24 @@ class GitSyncer:
             self.listener.message(f"Adding remote '{remote_name}' with URL {self.conf.dst_url}")
             repo.remotes.create(remote_name, self.conf.dst_url)
 
-        # Prepare refspecs for all branches and tags.
-        refspecs = [
+        # Prepare all_src_refs for all branches and tags.
+        all_src_refs = [
             f"{ref}:{ref}"
             for ref in repo.references
             if ref.startswith(("refs/heads/", "refs/tags/"))
         ]
+        if self.conf.branches_list:
+            self.listener.message(
+                f"Filtering all_src_refs to include only branches in {self.conf.branches_list}",
+                VERBOSE,
+            )
+            all_src_refs = [
+                ref for ref in all_src_refs if ref.split("/")[2] in self.conf.branches_list
+            ]
+            self.listener.message(f"Filtered all_src_refs: {all_src_refs}", VERBOSE)
 
         self.listener.message(
-            f"Pushing the following refspecs to remote '{remote_name}': {refspecs}"
+            f"Pushing the following all_src_refs to remote '{remote_name}': {all_src_refs}"
         )
         destination = repo.remotes[remote_name]
 
@@ -64,7 +73,7 @@ class GitSyncer:
             passphrase="",
         )
         callbacks = pygit2.RemoteCallbacks(credentials=keypair)
-        destination.push(refspecs, callbacks=callbacks)
+        destination.push(all_src_refs, callbacks=callbacks)
         self.listener.message("Push completed successfully.")
 
     def _clone_src_repo(self) -> Repository:
