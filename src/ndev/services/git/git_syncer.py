@@ -26,6 +26,9 @@ class GitSyncer:
         self.listener = listener
         self.conf = conf
 
+        if not (pygit2.features & pygit2.GIT_FEATURE_SSH):
+            raise RuntimeError("pygit2 was not built with SSH support.")
+
     def sync(self) -> None:
         self.listener.message(
             f"Syncing repo {self.conf.src_url} to {self.conf.dst_url}", VERY_VERBOSE
