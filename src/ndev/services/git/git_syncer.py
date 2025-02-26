@@ -4,9 +4,12 @@ from pathlib import Path
 
 import pygit2
 
+from pygit2 import Repository
+
 from ndev.hx_urllib import extract_basename_from_url
 from ndev.protocols.listener import NULL_LISTENER
 from ndev.protocols.listener import Listener
+from ndev.protocols.verbosity import VERBOSE
 from ndev.protocols.verbosity import VERY_VERBOSE
 from ndev.services.git.git_syncer_conf import GitSyncerConf
 
@@ -28,14 +31,7 @@ class GitSyncer:
             f"Syncing repo {self.conf.src_url} to {self.conf.dst_url}", VERY_VERBOSE
         )
 
-        repo_name = extract_basename_from_url(self.conf.src_url)
-        clone_path = Path.cwd() / repo_name
-        if clone_path.exists():
-            self.listener.message(f"Removing existing directory {clone_path}")
-            shutil.rmtree(clone_path)
-
-        self.listener.message(f"Cloning {self.conf.src_url} into {clone_path}")
-        repo = pygit2.clone_repository(self.conf.src_url, clone_path)
+        repo = self._clone_src_repo()
 
         # Add the destination repository as a remote named "destination"
         remote_name = "destination"
@@ -67,3 +63,23 @@ class GitSyncer:
         callbacks = pygit2.RemoteCallbacks(credentials=keypair)
         destination.push(refspecs, callbacks=callbacks)
         self.listener.message("Push completed successfully.")
+
+    def _clone_src_repo(self) -> Repository:
+        repo_name = extract_basename_from_url(self.conf.src_url)
+        clone_path = Path.cwd() / repo_name
+        if clone_path.exists():
+            self.listener.message(f"Removing existing directory {clone_path}", VERBOSE)
+            shutil.rmtree(clone_path)
+
+        self.listener.message(f"Cloning {self.conf.src_url} into {clone_path}")
+
+        src_keypair = pygit2.Keypair(
+            username=self.conf.src_git_user,
+            pubkey=self.conf.src_public_key_path,
+            privkey=self.conf.src_private_key_path,
+            passphrase=self.conf.src_passphrase,
+        )
+        src_callback = pygit2.RemoteCallbacks(credentials=src_keypair)
+        return pygit2.clone_repository(
+            url=self.conf.src_url, path=clone_path, callbacks=src_callback
+        )
