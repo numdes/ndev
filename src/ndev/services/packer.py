@@ -13,8 +13,8 @@ from cleo.io.outputs.output import Verbosity
 from pydantic import BaseModel
 from pydantic import Field
 
-from ndev.services.listener import NULL_LISTENER
-from ndev.services.listener import Listener
+from ndev.protocols.listener import NULL_LISTENER
+from ndev.protocols.listener import Listener
 from ndev.shutil_ext import copytree_from_zip
 
 

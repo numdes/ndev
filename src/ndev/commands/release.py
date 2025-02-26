@@ -5,21 +5,10 @@ from typing import ClassVar
 
 from cleo.commands.command import Command
 from cleo.helpers import option
-from cleo.io.io import IO
-from cleo.io.outputs.output import Verbosity
 
-from ndev.services.listener import Listener
+from ndev.impl.listener import CommandListener
 from ndev.services.packer import Packer
 from ndev.services.packer import PackerSchema
-
-
-class CommandListener(Listener):
-    def __init__(self, io: IO) -> None:
-        super().__init__()
-        self.io = io
-
-    def message(self, message: str, verbosity: int = 32) -> None:
-        self.io.write_line(message, Verbosity(verbosity))
 
 
 class ReleaseCommand(Command):
