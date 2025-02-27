@@ -55,8 +55,9 @@ class GitSyncer:
                 self.listener.message(f"Pushing: {ref}", VERBOSE)
                 try:
                     dst_repo.push([ref], callbacks=self._get_dst_callback())
+                    self.listener.message(f"Pushed: {ref}", VERBOSE)
                 except GitError as ge:
-                    self.listener.message(f"FAILED to push refspec: {ref}")
+                    self.listener.message(f"FAILED to push refspec: {ref}", VERBOSE)
                     self.listener.message(str(ge), VERBOSE)
 
             self.listener.message("Push completed successfully.")
@@ -129,6 +130,7 @@ class GitSyncer:
                 ref_tokens[2] = DESTINATION_NAME
                 dst_ref = "/".join(ref_tokens)
                 dst_ref_name = "/".join(ref_tokens[3:])
+                dst_ref_name = "refs/head/" + dst_ref_name
 
                 if dst_ref in all_refs:
                     # Force update existing ref
