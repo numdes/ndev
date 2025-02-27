@@ -6,8 +6,8 @@ from cleo.commands.command import Command
 from cleo.helpers import option
 
 from ndev.impl.listener import CommandListener
-from ndev.services.git.git_syncer import GitSyncer
-from ndev.services.git.git_syncer_conf import GitSyncerConf
+from ndev.services.git.syncer import GitSyncer
+from ndev.services.git.syncer_conf import GitSyncerConf
 
 
 class GitSyncCommand(Command):

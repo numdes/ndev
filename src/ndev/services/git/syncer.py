@@ -14,7 +14,8 @@ from ndev.protocols.listener import NULL_LISTENER
 from ndev.protocols.listener import Listener
 from ndev.protocols.verbosity import VERBOSE
 from ndev.protocols.verbosity import VERY_VERBOSE
-from ndev.services.git.git_syncer_conf import GitSyncerConf
+from ndev.services.git.syncer_conf import GitSyncerConf
+from ndev.services.git.tool import push
 
 
 SOURCE_NAME: Final[str] = "origin"
@@ -42,7 +43,7 @@ class GitSyncer:
         )
 
         src_repo = self._clone_src_repo()
-        dst_repo = self._add_remote(src_repo, self.conf.dst_url)
+        _ = self._add_remote(src_repo, self.conf.dst_url)
         all_src_refs = self._select_refs_to_push(src_repo)
 
         self.listener.message(f"Pushing refs: {all_src_refs}", VERBOSE)
@@ -54,8 +55,8 @@ class GitSyncer:
             for ref in all_src_refs:
                 self.listener.message(f"Pushing: {ref}", VERBOSE)
                 try:
-                    dst_repo.push([ref], callbacks=self._get_dst_callback())
-                    self.listener.message(f"Pushed: {ref}", VERBOSE)
+                    push(repo_path=Path(src_repo.path), remote=DESTINATION_NAME, refspec=ref)
+                    self.listener.message(f"SUCCESS to push: {ref}", VERBOSE)
                 except GitError as ge:
                     self.listener.message(f"FAILED to push refspec: {ref}", VERBOSE)
                     self.listener.message(str(ge), VERBOSE)

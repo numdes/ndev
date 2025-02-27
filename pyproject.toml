@@ -6,11 +6,12 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "cleo",
+    "gitpython>=3.1.44",
     "pydantic>=2.9.2",
     "pygit2>=1.15.1",
     "tomli (>=2.0.1,<3.0.0) ; python_version < '3.11'",
 ]
-scripts = {ndev = "ndev.app:main"}
+scripts = { ndev = "ndev.app:main" }
 
 [build-system]
 requires = ["uv>=0.6.2,<0.7"]
@@ -27,24 +28,24 @@ lines-after-imports = 2
 
 [tool.ruff.lint]
 extend-select = [
-    "B",    # flake8-bugbear
-    "C4",   # flake8-comprehensions
-    "ERA",  # flake8-eradicate/eradicate
+    "B", # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "ERA", # flake8-eradicate/eradicate
     "FURB", # refurb
-    "I",    # isort
-    "LOG",  # flake8-logging
-    "N",    # pep8-naming
-    "NPY",  # numpy specific checks
+    "I", # isort
+    "LOG", # flake8-logging
+    "N", # pep8-naming
+    "NPY", # numpy specific checks
     "PERF", # perflint
-    "PIE",  # flake8-pie
-    "PGH",  # pygrep
-    "PL",   # pylint
-    "RUF",  # ruff checks
-    "SIM",  # flake8-simplify
-    "TCH",  # flake8-type-checking
-    "TID",  # flake8-tidy-imports
-    "UP",   # pyupgrade
-    "YTT",  # flake8-2020
+    "PIE", # flake8-pie
+    "PGH", # pygrep
+    "PL", # pylint
+    "RUF", # ruff checks
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "UP", # pyupgrade
+    "YTT", # flake8-2020
 ]
 ignore = [
     "PLR0912", # Too many branches
@@ -52,6 +53,7 @@ ignore = [
 ]
 
 [tool.uv]
+preview = true
 package = true
 index-url = "https://pypi.org/simple"
 dev-dependencies = [
