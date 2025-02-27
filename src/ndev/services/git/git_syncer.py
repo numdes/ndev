@@ -81,7 +81,7 @@ class GitSyncer:
         self.listener.message(f"Cloning {self.conf.src_url} into {clone_path}")
 
         return pygit2.clone_repository(
-            url=self.conf.src_url, path=clone_path, callbacks=self._get_src_callback()
+            url=self.conf.src_url, bare=True, path=clone_path, callbacks=self._get_src_callback()
         )
 
     def _add_remote(self, src_repo: Repository, dst_url: str) -> Remote:

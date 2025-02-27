@@ -1,4 +1,5 @@
 ## [0.5.0] - 
+
 - add `git sync` command
 - update branches
 
