@@ -44,6 +44,8 @@ class GitSyncer:
         dst_repo = self._add_remote(src_repo, self.conf.dst_url)
         all_src_refs = self._select_refs_to_push(src_repo)
 
+        self.listener.message(f"Pushing refs: {all_src_refs}", VERBOSE)
+
         dst_repo.push(all_src_refs, callbacks=self._get_dst_callback())
         self.listener.message("Push completed successfully.")
 
