@@ -131,7 +131,7 @@ class GitSyncer:
                 ref_tokens[2] = DESTINATION_NAME
                 dst_ref = "/".join(ref_tokens)
                 dst_ref_name = "/".join(ref_tokens[3:])
-                dst_ref_name = "refs/head/" + dst_ref_name
+                dst_ref_name = "refs/heads/" + dst_ref_name
 
                 if dst_ref in all_refs:
                     # Force update existing ref
