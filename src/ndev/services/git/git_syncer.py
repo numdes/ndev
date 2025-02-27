@@ -57,8 +57,13 @@ class GitSyncer:
         repo_name = extract_basename_from_url(self.conf.src_url)
         clone_path = Path.cwd() / repo_name
         if clone_path.exists():
-            self.listener.message(f"Removing existing directory {clone_path}", VERBOSE)
-            shutil.rmtree(clone_path)
+            if not self.conf.keep_src_repo_dir:
+                self.listener.message(f"Removing existing directory {clone_path}", VERBOSE)
+                shutil.rmtree(clone_path)
+            else:
+                repo = Repository(clone_path)
+                repo.remotes[SOURCE_NAME].fetch(callbacks=self._get_src_callback())
+                return repo
 
         self.listener.message(f"Cloning {self.conf.src_url} into {clone_path}")
 

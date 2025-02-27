@@ -27,3 +27,4 @@ class GitSyncerConf(BaseModel):
     branches_list: list[str] = Field(default_factory=list)
 
     dry_run: bool = Field(default=False)
+    keep_src_repo_dir: bool = Field(default=False)

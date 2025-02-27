@@ -35,6 +35,11 @@ class GitSyncCommand(Command):
             description="Do not push changes.",
             flag=True,
         ),
+        option(
+            long_name="keep-src-repo-dir",
+            description="Do not remove source repository directory.",
+            flag=True,
+        ),
     ]
 
     def handle(self) -> int:
@@ -54,6 +59,8 @@ class GitSyncCommand(Command):
             src_url=src,
             dst_url=dst,
             branches_list=branches_list,
+            dry_run=self.option("dry-run"),
+            keep_src_repo_dir=self.option("keep-src-repo-dir"),
         )
 
         git_syncer = GitSyncer(conf=git_sync_conf, listener=CommandListener(self.io))
