@@ -30,6 +30,11 @@ class GitSyncCommand(Command):
             description="Branches to sync.",
             flag=False,
         ),
+        option(
+            long_name="dry-run",
+            description="Do not push changes.",
+            flag=True,
+        ),
     ]
 
     def handle(self) -> int:

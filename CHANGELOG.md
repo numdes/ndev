@@ -2,6 +2,7 @@
 
 - add `git sync` command
 - update branches
+- add dry-run mode for git sync
 
 ## [0.4.1] - 2025-02-20
 

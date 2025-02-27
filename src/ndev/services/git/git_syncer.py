@@ -45,9 +45,13 @@ class GitSyncer:
         all_src_refs = self._select_refs_to_push(src_repo)
 
         self.listener.message(f"Pushing refs: {all_src_refs}", VERBOSE)
-
-        dst_repo.push(all_src_refs, callbacks=self._get_dst_callback())
-        self.listener.message("Push completed successfully.")
+        if self.conf.dry_run:
+            self.listener.message("DRY-RUN: pushing next refs to destination repo")
+            for ref in all_src_refs:
+                self.listener.message(f"  -> {ref}")
+        else:
+            dst_repo.push(all_src_refs, callbacks=self._get_dst_callback())
+            self.listener.message("Push completed successfully.")
 
     def _clone_src_repo(self) -> Repository:
         repo_name = extract_basename_from_url(self.conf.src_url)
@@ -111,13 +115,14 @@ class GitSyncer:
                 ref_tokens = ref.split("/")
                 ref_tokens[2] = DESTINATION_NAME
                 dst_ref = "/".join(ref_tokens)
+                dst_ref_name = "/".join(ref_tokens[3:])
 
                 if dst_ref in all_refs:
                     # Force update existing ref
-                    refs_to_push.append(f"+{ref}:{dst_ref}")
+                    refs_to_push.append(f"+{ref}:{dst_ref_name}")
                 else:
                     # Normal push for new ref
-                    refs_to_push.append(f"{ref}:{dst_ref}")
+                    refs_to_push.append(f"{ref}:{dst_ref_name}")
 
         # Prepare refs_to_push for all branches and tags.
         if self.conf.branches_list:

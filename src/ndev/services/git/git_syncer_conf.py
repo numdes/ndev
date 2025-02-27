@@ -25,3 +25,5 @@ class GitSyncerConf(BaseModel):
     dst_passphrase: str = Field(default="")
 
     branches_list: list[str] = Field(default_factory=list)
+
+    dry_run: bool = Field(default=False)
