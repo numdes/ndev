@@ -5,6 +5,7 @@ from typing import Final
 
 import pygit2
 
+from pygit2 import GitError
 from pygit2 import Remote
 from pygit2 import Repository
 
@@ -50,7 +51,14 @@ class GitSyncer:
             for ref in all_src_refs:
                 self.listener.message(f"  -> {ref}")
         else:
-            dst_repo.push(all_src_refs, callbacks=self._get_dst_callback())
+            for ref in all_src_refs:
+                self.listener.message(f"Pushing: {ref}", VERBOSE)
+                try:
+                    dst_repo.push([ref], callbacks=self._get_dst_callback())
+                except GitError as ge:
+                    self.listener.message(f"FAILED to push refspec: {ref}")
+                    self.listener.message(str(ge), VERBOSE)
+
             self.listener.message("Push completed successfully.")
 
     def _clone_src_repo(self) -> Repository:
