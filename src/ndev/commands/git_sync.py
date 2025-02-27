@@ -55,12 +55,15 @@ class GitSyncCommand(Command):
         branches = self.option("branches")
         branches_list = branches.split(",") if branches else []
 
+        _dry_run = self.option("dry-run") or os.getenv("NDEV_DRY_RUN")
+        _keep_src_repo_dir = self.option("keep-src-repo-dir") or os.getenv("NDEV_KEEP_SRC_REPO_DIR")
+
         git_sync_conf = GitSyncerConf(
             src_url=src,
             dst_url=dst,
             branches_list=branches_list,
-            dry_run=self.option("dry-run"),
-            keep_src_repo_dir=self.option("keep-src-repo-dir"),
+            dry_run=_dry_run,
+            keep_src_repo_dir=_keep_src_repo_dir,
         )
 
         git_syncer = GitSyncer(conf=git_sync_conf, listener=CommandListener(self.io))
