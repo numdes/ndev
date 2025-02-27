@@ -1,9 +1,11 @@
 import shutil
 
 from pathlib import Path
+from typing import Final
 
 import pygit2
 
+from pygit2 import Remote
 from pygit2 import Repository
 
 from ndev.hx_urllib import extract_basename_from_url
@@ -12,6 +14,9 @@ from ndev.protocols.listener import Listener
 from ndev.protocols.verbosity import VERBOSE
 from ndev.protocols.verbosity import VERY_VERBOSE
 from ndev.services.git.git_syncer_conf import GitSyncerConf
+
+
+DESTINATION_NAME: Final[str] = "dest"
 
 
 class GitSyncer:
@@ -34,23 +39,21 @@ class GitSyncer:
             f"Syncing repo {self.conf.src_url} to {self.conf.dst_url}", VERY_VERBOSE
         )
 
-        repo = self._clone_src_repo()
-
-        # Add the destination repository as a remote named "destination"
-        remote_name = "destination"
-        if remote_name in repo.remotes:
-            self.listener.message(f"Remote '{remote_name}' already exists. Updating URL.")
-            repo.remotes.set_url(remote_name, self.conf.dst_url)
-        else:
-            self.listener.message(f"Adding remote '{remote_name}' with URL {self.conf.dst_url}")
-            repo.remotes.create(remote_name, self.conf.dst_url)
+        src_repo = self._clone_src_repo()
+        dst_repo = self._add_remote(src_repo, self.conf.dst_url)
+        all_src_refs = []
+        for ref in src_repo.references:
+            if ref.startswith(("refs/heads/", "refs/tags/")):
+                # Check if ref exists in destination
+                dst_ref = f"refs/remotes/{DESTINATION_NAME}/{ref.split('/')[-1]}"
+                if dst_ref in src_repo.references:
+                    # Force update existing ref
+                    all_src_refs.append(f"+{ref}:{ref}")
+                else:
+                    # Normal push for new ref
+                    all_src_refs.append(f"{ref}:{ref}")
 
         # Prepare all_src_refs for all branches and tags.
-        all_src_refs = [
-            f"{ref}:{ref}"
-            for ref in repo.references
-            if ref.startswith(("refs/heads/", "refs/tags/"))
-        ]
         if self.conf.branches_list:
             self.listener.message(
                 f"Filtering all_src_refs to include only branches in {self.conf.branches_list}",
@@ -62,18 +65,10 @@ class GitSyncer:
             self.listener.message(f"Filtered all_src_refs: {all_src_refs}", VERBOSE)
 
         self.listener.message(
-            f"Pushing the following all_src_refs to remote '{remote_name}': {all_src_refs}"
+            f"Pushing the following all_src_refs to remote '{DESTINATION_NAME}': {all_src_refs}"
         )
-        destination = repo.remotes[remote_name]
 
-        keypair = pygit2.Keypair(
-            username="git",
-            pubkey=Path.home() / ".ssh/id_rsa.pub",
-            privkey=Path.home() / ".ssh/id_rsa",
-            passphrase="",
-        )
-        callbacks = pygit2.RemoteCallbacks(credentials=keypair)
-        destination.push(all_src_refs, callbacks=callbacks)
+        dst_repo.push(all_src_refs, callbacks=self._get_dst_callback())
         self.listener.message("Push completed successfully.")
 
     def _clone_src_repo(self) -> Repository:
@@ -85,13 +80,36 @@ class GitSyncer:
 
         self.listener.message(f"Cloning {self.conf.src_url} into {clone_path}")
 
+        return pygit2.clone_repository(
+            url=self.conf.src_url, path=clone_path, callbacks=self._get_src_callback()
+        )
+
+    def _add_remote(self, src_repo: Repository, dst_url: str) -> Remote:
+        if DESTINATION_NAME in src_repo.remotes:
+            self.listener.message(f"Remote '{DESTINATION_NAME}' already exists. Updating URL.")
+            src_repo.remotes.set_url(DESTINATION_NAME, dst_url)
+        else:
+            self.listener.message(f"Adding remote '{DESTINATION_NAME}' with URL {dst_url}")
+            src_repo.remotes.create(DESTINATION_NAME, dst_url)
+
+        dst_repo = src_repo.remotes[DESTINATION_NAME]
+        dst_repo.fetch(callbacks=self._get_dst_callback())
+        return dst_repo
+
+    def _get_dst_callback(self) -> pygit2.RemoteCallbacks:
+        dst_keypair = pygit2.Keypair(
+            username=self.conf.dst_git_user,
+            pubkey=self.conf.dst_public_key_path,
+            privkey=self.conf.dst_private_key_path,
+            passphrase=self.conf.dst_passphrase,
+        )
+        return pygit2.RemoteCallbacks(credentials=dst_keypair)
+
+    def _get_src_callback(self) -> pygit2.RemoteCallbacks:
         src_keypair = pygit2.Keypair(
             username=self.conf.src_git_user,
             pubkey=self.conf.src_public_key_path,
             privkey=self.conf.src_private_key_path,
             passphrase=self.conf.src_passphrase,
         )
-        src_callback = pygit2.RemoteCallbacks(credentials=src_keypair)
-        return pygit2.clone_repository(
-            url=self.conf.src_url, path=clone_path, callbacks=src_callback
-        )
+        return pygit2.RemoteCallbacks(credentials=src_keypair)

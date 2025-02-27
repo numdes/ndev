@@ -1,5 +1,6 @@
 ## [0.5.0] - 
 - add `git sync` command
+- update branches
 
 ## [0.4.1] - 2025-02-20
 
