@@ -16,6 +16,7 @@ from ndev.protocols.verbosity import VERY_VERBOSE
 from ndev.services.git.git_syncer_conf import GitSyncerConf
 
 
+SOURCE_NAME: Final[str] = "origin"
 DESTINATION_NAME: Final[str] = "dest"
 
 
@@ -41,33 +42,7 @@ class GitSyncer:
 
         src_repo = self._clone_src_repo()
         dst_repo = self._add_remote(src_repo, self.conf.dst_url)
-        all_src_refs = []
-        for ref in src_repo.references:
-            self.listener.message(f"Processing ref: {ref}", VERBOSE)
-            if ref.startswith(("refs/heads/", "refs/tags/")):
-                # Check if ref exists in destination
-                dst_ref = f"refs/remotes/{DESTINATION_NAME}/{ref.split('/')[-1]}"
-                if dst_ref in src_repo.references:
-                    # Force update existing ref
-                    all_src_refs.append(f"+{ref}:{ref}")
-                else:
-                    # Normal push for new ref
-                    all_src_refs.append(f"{ref}:{ref}")
-
-        # Prepare all_src_refs for all branches and tags.
-        if self.conf.branches_list:
-            self.listener.message(
-                f"Filtering all_src_refs to include only branches in {self.conf.branches_list}",
-                VERBOSE,
-            )
-            all_src_refs = [
-                ref for ref in all_src_refs if ref.split("/")[2] in self.conf.branches_list
-            ]
-            self.listener.message(f"Filtered all_src_refs: {all_src_refs}", VERBOSE)
-
-        self.listener.message(
-            f"Pushing the following all_src_refs to remote '{DESTINATION_NAME}': {all_src_refs}"
-        )
+        all_src_refs = self._select_refs_to_push(src_repo)
 
         dst_repo.push(all_src_refs, callbacks=self._get_dst_callback())
         self.listener.message("Push completed successfully.")
@@ -114,3 +89,46 @@ class GitSyncer:
             passphrase=self.conf.src_passphrase,
         )
         return pygit2.RemoteCallbacks(credentials=src_keypair)
+
+    def _select_refs_to_push(self, src_repo: Repository) -> list[str]:
+        refs_to_push = []
+        all_refs = set(src_repo.references)
+        for ref in all_refs:
+            self.listener.message(f"Processing ref: {ref}", VERBOSE)
+
+            # tags are always included
+            if ref.startswith("refs/tags/"):
+                refs_to_push.append(f"{ref}:{ref}")
+
+            # active branches are always included
+            if ref.startswith("refs/heads/"):
+                refs_to_push.append(f"{ref}:{ref}")
+
+            # remote branches
+            if ref.startswith(f"refs/remotes/{SOURCE_NAME}"):
+                ref_tokens = ref.split("/")
+                ref_tokens[2] = DESTINATION_NAME
+                dst_ref = "/".join(ref_tokens)
+
+                if dst_ref in all_refs:
+                    # Force update existing ref
+                    refs_to_push.append(f"+{ref}:{dst_ref}")
+                else:
+                    # Normal push for new ref
+                    refs_to_push.append(f"{ref}:{dst_ref}")
+
+        # Prepare refs_to_push for all branches and tags.
+        if self.conf.branches_list:
+            self.listener.message(
+                f"Filtering refs_to_push to include only branches in {self.conf.branches_list}",
+                VERBOSE,
+            )
+            _filtered_refs_to_push = []
+            for branch in self.conf.branches_list:
+                for ref in refs_to_push:
+                    if branch in ref:
+                        _filtered_refs_to_push.append(ref)
+            refs_to_push = _filtered_refs_to_push
+            self.listener.message(f"Filtered refs_to_push: {refs_to_push}", VERBOSE)
+
+        return refs_to_push

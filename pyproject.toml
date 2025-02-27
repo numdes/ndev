@@ -48,6 +48,7 @@ extend-select = [
 ]
 ignore = [
     "PLR0912", # Too many branches
+    "PERF401", # Use a list comprehension to create a transformed list
 ]
 
 [tool.uv]
