@@ -43,6 +43,7 @@ class GitSyncer:
         dst_repo = self._add_remote(src_repo, self.conf.dst_url)
         all_src_refs = []
         for ref in src_repo.references:
+            self.listener.message(f"Processing ref: {ref}", VERBOSE)
             if ref.startswith(("refs/heads/", "refs/tags/")):
                 # Check if ref exists in destination
                 dst_ref = f"refs/remotes/{DESTINATION_NAME}/{ref.split('/')[-1]}"
