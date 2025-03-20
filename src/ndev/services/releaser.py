@@ -352,7 +352,7 @@ class Releaser:
             )
             if requirement_spec is None:
                 self.out(
-                    message=f"ERROR: wheel {wheel_name} not found in requirements.txt.",
+                    message=f"ERROR: wheel {wheel_name} is not found in requirements.txt.",
                     verbosity=Verbosity.NORMAL.value,
                 )
                 return os.EX_UNAVAILABLE
