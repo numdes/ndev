@@ -350,7 +350,7 @@ class Releaser:
                 message="No 'copy-wheel-src' section in ndev configuration. Skipping wheels downloading.",
                 verbosity=Verbosity.VERBOSE.value,
             )
-            return
+            return os.EX_OK
 
         self.out(message="Downloading wheels: ", verbosity=Verbosity.NORMAL.value)
 
@@ -407,6 +407,8 @@ class Releaser:
                     f"stderr: [{result.stderr}]",
                     verbosity=Verbosity.VERY_VERBOSE.value,
                 )
+
+        return os.EX_OK
 
     def copy_wheels_sources(self) -> int:
         if not self.schema.copy_wheel_src:
