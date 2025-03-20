@@ -120,11 +120,12 @@ class Releaser:
         self.out = listener
         self.wheels_dir = tempfile.TemporaryDirectory()
 
-    def pack(self) -> int:
+    def pack(self) -> int:  # noqa: PLR0911 many returns is ok here
         if self.schema.origin is None:
             raise ValueError("origin is not set in schema")
         if self.schema.destination_dir is None and self.schema.destination_repo is None:
             raise ValueError("both dir and repo is not set")
+
         _destination_temp_dir = None
         if self.schema.destination_dir is None:
             _destination_temp_dir = tempfile.TemporaryDirectory()
@@ -164,12 +165,14 @@ class Releaser:
 
         self.copy_root()
         self.copy_local_files()
-        self.generate_requirements_txt()
 
-        ret_code = self.download_wheels()
-        if ret_code != os.EX_OK:
-            self.out(f"Failed to make release. Status code: {ret_code}.")
-            return ret_code
+        if (_ret_code := self.generate_requirements_txt()) != os.EX_OK:
+            self.out(f"Failed to generate requirements.txt. Return code: {_ret_code}")
+            return _ret_code
+
+        if (_ret_code := self.download_wheels()) != os.EX_OK:
+            self.out(f"Failed to make release. Status code: {_ret_code}.")
+            return _ret_code
 
         self.copy_wheels_sources()
         self.copy_repo_sources()
@@ -265,7 +268,7 @@ class Releaser:
 
         return os.EX_OK
 
-    def generate_requirements_txt(self):
+    def generate_requirements_txt(self) -> int:
         if not self.schema.copy_requirements_txt:
             self.out(
                 message="copy_requirements = false. Skipping requirements.txt generation.",
@@ -275,27 +278,34 @@ class Releaser:
 
         self.out("Generating requirements.txt.", verbosity=Verbosity.NORMAL.value)
         requirements_path = self.schema.origin / "requirements.txt"
-        if not requirements_path.exists():
-            groups = ",".join(self.schema.install_dependencies_with_groups)
-            with_groups = f"--with {groups} " if groups else ""
-
-            result = subprocess.run(
-                "poetry export "
-                "--without-hashes "
-                f"{with_groups}"
-                "--format requirements.txt "
-                "--output requirements.txt",
-                shell=True,
-                capture_output=True,
-                text=True,
-                cwd=self.schema.origin,
-                check=False,
+        if requirements_path.exists():
+            self.out(
+                message="requirements.txt already exists. Delete it before generating it.",
+                verbosity=Verbosity.VERBOSE.value,
             )
-            if not requirements_path.exists() or result.returncode != os.EX_OK:
-                self.out("Failed to generate requirements.txt.")
-                self.out(result.stdout)
-                self.out(result.stderr)
-                return os.EX_NOINPUT
+            requirements_path.unlink()
+
+        groups = ",".join(self.schema.install_dependencies_with_groups)
+        with_groups = f"--with {groups} " if groups else ""
+
+        result = subprocess.run(
+            "poetry export "
+            "--without-hashes "
+            f"{with_groups}"
+            "--format requirements.txt "
+            "--output requirements.txt",
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=self.schema.origin,
+            check=False,
+        )
+
+        if not requirements_path.exists() or result.returncode != os.EX_OK:
+            self.out("Failed to generate requirements.txt.")
+            self.out(result.stdout)
+            self.out(result.stderr)
+            return os.EX_NOINPUT
 
         # filter out index-url and empty lines
         requirement_lines = requirements_path.read_text(encoding="utf8").splitlines()
@@ -311,6 +321,8 @@ class Releaser:
             if good_line:
                 _filtered_lines.append(line)
         (self.schema.destination_dir / "requirements.txt").write_text("\n".join(_filtered_lines))
+
+        return os.EX_OK
 
     def remove_todo(self):
         if not self.schema.remove_todo:
