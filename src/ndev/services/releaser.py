@@ -165,7 +165,12 @@ class Releaser:
         self.copy_root()
         self.copy_local_files()
         self.generate_requirements_txt()
-        self.download_wheels()
+
+        ret_code = self.download_wheels()
+        if ret_code != os.EX_OK:
+            self.out(f"Failed to make release. Status code: {ret_code}.")
+            return ret_code
+
         self.copy_wheels_sources()
         self.copy_repo_sources()
         self.remove_todo()
@@ -345,6 +350,13 @@ class Releaser:
                 (line for line in self._get_requirements_txt_list() if f"{wheel_name}==" in line),
                 None,
             )
+            if requirement_spec is None:
+                self.out(
+                    message=f"Wheel {wheel_name} not found in requirements.txt.",
+                    verbosity=Verbosity.NORMAL.value,
+                )
+                return os.EX_USAGE
+
             if ";" in requirement_spec:
                 requirement_spec = requirement_spec.split(";")[0]
             self.out(
