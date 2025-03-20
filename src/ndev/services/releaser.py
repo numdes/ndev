@@ -358,6 +358,7 @@ class Releaser:
             result = subprocess.run(
                 f"pip download "
                 "--no-deps "
+                "--disable-pip-version-check "
                 "--ignore-requires-python "
                 "--exists-action i "
                 "--platform manylinux_2_28_x86_64 "
@@ -376,8 +377,10 @@ class Releaser:
                 return result.returncode
             else:
                 self.out(
-                    message=f"Downloaded wheel: {wheel_name}, spec: {requirement_spec}, "
-                    f"stdout: {result.stdout}, stderr: {result.stderr}",
+                    message=f"Downloaded wheel: [{wheel_name}]\n"
+                    f"spec: [{requirement_spec}]\n"
+                    f"stdout: [{result.stdout}]\n"
+                    f"stderr: [{result.stderr}]",
                     verbosity=Verbosity.VERY_VERBOSE.value,
                 )
 
