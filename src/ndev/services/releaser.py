@@ -352,10 +352,10 @@ class Releaser:
             )
             if requirement_spec is None:
                 self.out(
-                    message=f"Wheel {wheel_name} not found in requirements.txt.",
+                    message=f"ERROR: wheel {wheel_name} not found in requirements.txt.",
                     verbosity=Verbosity.NORMAL.value,
                 )
-                return os.EX_USAGE
+                return os.EX_UNAVAILABLE
 
             if ";" in requirement_spec:
                 requirement_spec = requirement_spec.split(";")[0]
@@ -434,6 +434,7 @@ class Releaser:
                 ignore=shutil.ignore_patterns(*_ignores),
             )
         self.wheels_dir.cleanup()
+        return os.EX_OK
 
     def copy_repo_sources(self):
         if not self.schema.copy_repo_src:
