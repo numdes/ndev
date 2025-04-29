@@ -191,6 +191,7 @@ class Releaser:
         self.copy_repo_sources()
         self.remove_todo()
         self.add_version_json()
+        self.apply_patches()
 
         if self.schema.destination_repo is not None:
             if self.schema.author_email is None or self.schema.author_name is None:
@@ -216,8 +217,6 @@ class Releaser:
 
         if _destination_temp_dir is not None:
             _destination_temp_dir.cleanup()
-
-        self.apply_patches()
 
         return os.EX_OK
 
