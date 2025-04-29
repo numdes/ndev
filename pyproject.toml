@@ -1,6 +1,6 @@
 [project]
 name = "ndev"
-version = "0.4.1"
+version = "0.5.0"
 description = "Python projects management toolset"
 readme = "README.md"
 requires-python = ">=3.9"

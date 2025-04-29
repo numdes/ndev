@@ -1,8 +1,9 @@
-## [0.5.0] - 
+## [0.5.0] - 2025-04-29
 
 - add `git sync` command
 - update branches
 - add dry-run mode for git sync
+- add patches
 
 ## [0.4.1] - 2025-02-20
 

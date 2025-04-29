@@ -1,0 +1,19 @@
+[project]
+name = "ndev"
+version = "0.1.0"
+description = "Python projects management toolset"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "cleo",
+]
+scripts = { ndev = "ndev.app:main" }
+
+[tool.ndev]
+release-root = "."
+remove-todo = false
+
+[[tool.ndev.patches]]
+glob = "**/*.py"
+regex = "https?:\\/\\/[^\\s]+"
+subst = "PLACEHOLDER"

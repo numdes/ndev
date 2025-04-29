@@ -36,6 +36,16 @@ class CopyItem(BaseModel):
     package_name: str | None = None
 
 
+class PatchItem(BaseModel):
+    glob: str = Field(title="Glob Pattern", description="The glob pattern to match files.")
+    regex: str = Field(
+        title="Regular Expression", description="The regular expression to search for in files."
+    )
+    subst: str = Field(
+        title="Substitution String", description="The string to replace matches of the regex."
+    )
+
+
 class ReleaserConf(BaseModel):
     origin: str | Path | None = None
     destination_dir: Path | None = None
@@ -52,6 +62,7 @@ class ReleaserConf(BaseModel):
     remove_todo: bool = Field(False)
     filter_requirements_txt_matches: list[str] = Field(default_factory=list)
     install_dependencies_with_groups: list[str] = Field(default_factory=list)
+    patches: list[PatchItem] = Field(default_factory=list)
     add_version_json: bool = Field(False)
     version_str: str | None = Field(None)
 
@@ -106,6 +117,8 @@ class ReleaserConf(BaseModel):
             schema.install_dependencies_with_groups = project_dict["tool"]["ndev"][
                 "install-dependencies-with-groups"
             ]
+        if "patches" in project_dict["tool"]["ndev"]:
+            schema.patches = [PatchItem(**item) for item in project_dict["tool"]["ndev"]["patches"]]
         return schema
 
 
@@ -177,6 +190,7 @@ class Releaser:
         self.copy_wheels_sources()
         self.copy_repo_sources()
         self.remove_todo()
+        self.apply_patches()
         self.add_version_json()
 
         if self.schema.destination_repo is not None:
@@ -531,6 +545,32 @@ class Releaser:
   "Patch": {patch}
 }}"""
         )
+
+    def apply_patches(self):
+        if not self.schema.patches:
+            self.out(
+                message="No patches to apply.",
+                verbosity=Verbosity.VERY_VERBOSE.value,
+            )
+            return os.EX_OK
+
+        self.out("Applying patches...", verbosity=Verbosity.NORMAL.value)
+
+        for patch_item in self.schema.patches:
+            self.out(
+                message=f"Applying patch {patch_item.regex} to {patch_item.glob}.",
+                verbosity=Verbosity.VERBOSE.value,
+            )
+            for path in self.schema.destination_dir.rglob(patch_item.glob):
+                if path.is_file():
+                    content = path.read_text(encoding="utf-8")
+                    content = re.sub(
+                        patch_item.regex,
+                        patch_item.subst,
+                        content,
+                        flags=re.MULTILINE | re.IGNORECASE,
+                    )
+                    path.write_text(content, encoding="utf-8")
 
     # -- private methods --
 
