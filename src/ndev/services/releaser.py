@@ -190,7 +190,6 @@ class Releaser:
         self.copy_wheels_sources()
         self.copy_repo_sources()
         self.remove_todo()
-        self.apply_patches()
         self.add_version_json()
 
         if self.schema.destination_repo is not None:
@@ -217,6 +216,8 @@ class Releaser:
 
         if _destination_temp_dir is not None:
             _destination_temp_dir.cleanup()
+
+        self.apply_patches()
 
         return os.EX_OK
 
