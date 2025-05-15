@@ -1,3 +1,11 @@
+## [0.5.2] - 2025-05-15
+
+- make platform specification for wheel optional
+
+## [0.5.1] - 2025-04-29
+
+- hotfix: apply patches before release
+
 ## [0.5.0] - 2025-04-29
 
 - add `git sync` command

@@ -34,6 +34,7 @@ class CopyItem(BaseModel):
 
     ref: str | None = None
     package_name: str | None = None
+    platform: str | None = None
 
 
 class PatchItem(BaseModel):
@@ -393,13 +394,14 @@ class Releaser:
                 self.out(f"Requirement {copy_item['from']} not found in requirements.txt.")
                 return os.EX_NOINPUT
 
+            platform = f"--platform {copy_item.platform}" if copy_item.platform else ""
             result = subprocess.run(
                 f"pip download "
                 "--no-deps "
                 "--disable-pip-version-check "
                 "--ignore-requires-python "
                 "--exists-action i "
-                "--platform manylinux_2_28_x86_64 "
+                f"{platform} "
                 f" {requirement_spec} "
                 f'--dest "{self.wheels_dir.name}" ',
                 capture_output=True,
