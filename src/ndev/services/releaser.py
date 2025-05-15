@@ -395,7 +395,7 @@ class Releaser:
                 return os.EX_NOINPUT
 
             platform = f"--platform {copy_item.platform}" if copy_item.platform else ""
-            result = subprocess.run(
+            command = (
                 f"pip download "
                 "--no-deps "
                 "--disable-pip-version-check "
@@ -403,7 +403,10 @@ class Releaser:
                 "--exists-action i "
                 f"{platform} "
                 f" {requirement_spec} "
-                f'--dest "{self.wheels_dir.name}" ',
+                f'--dest "{self.wheels_dir.name}" '
+            )
+            result = subprocess.run(
+                command,
                 capture_output=True,
                 text=True,
                 shell=True,
@@ -412,8 +415,9 @@ class Releaser:
 
             if result.returncode != os.EX_OK:
                 self.out(f"Failed to download wheels. Status: {result.returncode}")
-                self.out(f"stdout: [{result.stdout}]")
-                self.out(f"stderr: [{result.stderr}]")
+                self.out(f"Command: [{command}]")
+                self.out(f"stdout: [{result.stdout.strip()}]")
+                self.out(f"stderr: [{result.stderr.strip()}]")
                 return result.returncode
             else:
                 self.out(

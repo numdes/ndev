@@ -1,3 +1,7 @@
+## [0.5.3] - 2025-05-15
+
+- debug wheels download
+
 ## [0.5.2] - 2025-05-15
 
 - make platform specification for wheel optional
