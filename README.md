@@ -34,7 +34,7 @@ customers with a specific structure, you can use `ndev release` command.
 flowchart LR
     SourceRepo[Source Repository]
     DestinationRepo[Destination Repository]
-    SourceRepo -->|run `ndev release`| DestinationRepo
+    SourceRepo -->|ndev release| DestinationRepo
 
 ```
 
