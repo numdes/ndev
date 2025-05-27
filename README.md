@@ -1,6 +1,6 @@
 # ndev
 
-Set of tools that helps to manage development lifecycle. This set contains tools for:
+ndev is an ultimate tool to manage development lifecycle.
 
 - [managing releases](#release-management)
 - _work in progress..._
@@ -27,10 +27,18 @@ uv tool install --editable .
 
 ## Release management
 
-When you have a big repository with complicated structure and you want to 
-make release of some part of it, you can use `ndev` to help you with that.
+When you have a big repository with complicated structure, and you want to release it for
+customers with a specific structure, you can use `ndev release` command.
 
-Basic use case is to transfer some sources codes to antoher repository:
+```mermaid
+flowchart LR
+    SourceRepo[Source Repository]
+    DestinationRepo[Destination Repository]
+    SourceRepo -->|run `ndev release`| DestinationRepo
+
+```
+
+Basic use case is to transfer some sources codes to another repository:
 
 ```bash
     ndev release \
@@ -40,13 +48,14 @@ Basic use case is to transfer some sources codes to antoher repository:
         --author_email "$GITLAB_USER_EMAIL"
 ```
 
-Here `--origin` is a path to the sources you want to release, 
+Here `--origin` is a path to the sources you want to release,
 `--destination` is a path to the repository where you want to release the sources.
 
-`--author_name` and `--author_email` are optional parameters that will be used 
+`--author_name` and `--author_email` are optional parameters that will be used
 to set author of the commit in the destination repository.
 
 After running this command, `ndev` will:
+
 1. Wipe out all the files in the destination repository
 2. Copy all the files from the origin repository to the destination repository
 3. Commit all the changes
@@ -73,9 +82,25 @@ copy-local = [
 copy-wheel-src = [
     # wheels sources for external use
     { from = "example2", to = "wheels/example2" },
+    # ignore some files while copying
+    { from = "example2", to = "wheels/example2", ignores = ["*.txt", "README.md"] },
+    # specify platform for the wheel. This is useful when you run `ndev release` 
+    # on a different platform than the one you want to release for.
+    { from = "example2", to = "wheels/example2", platform = "manylinux_2_36_x86_64" },
 ]
+
 # list of repositories to be copied to destination
+# if repo has ndev configuration, it will use it recursively
 copy-repo-src = [
     { from = "git@example.com:collction/example3.git", to = "libs/example3/cpp-src", ref = "main" },
 ]
+
+# below is an example of how to copy a repository with specific package name and platform
+# it uses custom configuration for package name to follow specific tag
+[[tool.ndev.copy-repo-src]]
+from = "git@example.com:repo/example4.git"
+to = "libs/example4/cpp-src"
+ref = "$NAME$-$VERSION$"
+package_name = "some_package_name"
+platform = "manylinux_2_36_x86_64"
 ```
