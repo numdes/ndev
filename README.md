@@ -103,4 +103,11 @@ to = "libs/example4/cpp-src"
 ref = "$NAME$-$VERSION$"
 package_name = "some_package_name"
 platform = "manylinux_2_36_x86_64"
+
+# patch files before release
+[[tool.ndev.patches]]
+glob = "**/_extern/pybind11/**"
+regex = "https?:\\/\\/[^\\s)'\"]+"
+subst = "LINK-REMOVED-DUE-TO-SECURITY-REQUIREMENTS"
+
 ```
