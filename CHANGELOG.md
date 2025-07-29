@@ -1,3 +1,7 @@
+## [0.6.0] - 2025-07-29
+
+- create pyproject.toml instead of requirements.txt
+
 ## [0.5.3] - 2025-05-15
 
 - debug wheels download

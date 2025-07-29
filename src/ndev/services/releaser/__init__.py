@@ -5,7 +5,6 @@ import subprocess
 import sys
 import tempfile
 
-from fnmatch import fnmatch
 from functools import partial
 from pathlib import Path
 
@@ -15,6 +14,9 @@ from pydantic import Field
 
 from ndev.protocols.listener import NULL_LISTENER
 from ndev.protocols.listener import Listener
+from ndev.services.releaser.requirements import add_dependencies_to_pyproject_toml
+from ndev.services.releaser.requirements import filter_requirements_txt
+from ndev.services.releaser.requirements import get_requirements_txt
 from ndev.shutil_ext import copytree_from_zip
 
 
@@ -60,6 +62,8 @@ class ReleaserConf(BaseModel):
 
     file_replace_prefix: str | None = Field(None)
     copy_requirements_txt: bool = Field(False)
+    manage_pyproject: bool = Field(False)
+    generate_poetry_lock: bool = Field(False)
     remove_todo: bool = Field(False)
     filter_requirements_txt_matches: list[str] = Field(default_factory=list)
     install_dependencies_with_groups: list[str] = Field(default_factory=list)
@@ -86,6 +90,10 @@ class ReleaserConf(BaseModel):
         )
         if "copy-requirements" in project_dict["tool"]["ndev"]:
             schema.copy_requirements_txt = project_dict["tool"]["ndev"]["copy-requirements"]
+        if "manage-pyproject" in project_dict["tool"]["ndev"]:
+            schema.manage_pyproject = project_dict["tool"]["ndev"]["manage-pyproject"]
+        if "generate-poetry-lock" in project_dict["tool"]["ndev"]:
+            schema.generate_poetry_lock = project_dict["tool"]["ndev"]["generate-poetry-lock"]
         if "remove-todo" in project_dict["tool"]["ndev"]:
             schema.remove_todo = project_dict["tool"]["ndev"]["remove-todo"]
         if "file-replace-prefix" in project_dict["tool"]["ndev"]:
@@ -180,7 +188,7 @@ class Releaser:
         self.copy_root()
         self.copy_local_files()
 
-        if (_ret_code := self.generate_requirements_txt()) != os.EX_OK:
+        if (_ret_code := self.manage_requirements()) != os.EX_OK:
             self.out(f"Failed to generate requirements.txt. Return code: {_ret_code}")
             return _ret_code
 
@@ -191,8 +199,11 @@ class Releaser:
         self.copy_wheels_sources()
         self.copy_repo_sources()
         self.remove_todo()
-        self.add_version_json()
+        if (_ret_code := self.add_version()) != os.EX_OK:
+            self.out(f"Failed to add version. Return code: {_ret_code}")
+            return _ret_code
         self.apply_patches()
+        self.generate_poetry_lock()
 
         if self.schema.destination_repo is not None:
             if self.schema.author_email is None or self.schema.author_name is None:
@@ -283,60 +294,34 @@ class Releaser:
 
         return os.EX_OK
 
-    def generate_requirements_txt(self) -> int:
-        if not self.schema.copy_requirements_txt:
+    def manage_requirements(self) -> int:
+        if not self.schema.copy_requirements_txt and not self.schema.manage_pyproject:
             self.out(
-                message="copy_requirements = false. Skipping requirements.txt generation.",
+                message="Management of requirements is not required. Skipping",
                 verbosity=Verbosity.VERBOSE.value,
             )
             return os.EX_OK
 
-        self.out("Generating requirements.txt.", verbosity=Verbosity.NORMAL.value)
-        requirements_path = self.schema.origin / "requirements.txt"
-        if requirements_path.exists():
-            self.out(
-                message="requirements.txt already exists. Delete it before generating it.",
-                verbosity=Verbosity.VERBOSE.value,
-            )
-            requirements_path.unlink()
-
-        groups = ",".join(self.schema.install_dependencies_with_groups)
-        with_groups = f"--with {groups} " if groups else ""
-
-        result = subprocess.run(
-            "poetry export "
-            "--without-hashes "
-            f"{with_groups}"
-            "--format requirements.txt "
-            "--output requirements.txt",
-            shell=True,
-            capture_output=True,
-            text=True,
-            cwd=self.schema.origin,
-            check=False,
+        requirements_txt = get_requirements_txt(
+            working_dir=self.schema.origin, groups=self.schema.install_dependencies_with_groups
+        )
+        filtered_requirements_txt = filter_requirements_txt(
+            requirements_txt=requirements_txt,
+            filtered_matches=self.schema.filter_requirements_txt_matches,
         )
 
-        if not requirements_path.exists() or result.returncode != os.EX_OK:
-            self.out("Failed to generate requirements.txt.")
-            self.out(result.stdout)
-            self.out(result.stderr)
-            return os.EX_NOINPUT
+        if self.schema.copy_requirements_txt:
+            (self.schema.destination_dir / "requirements.txt").write_text(filtered_requirements_txt)
 
-        # filter out index-url and empty lines
-        requirement_lines = requirements_path.read_text(encoding="utf8").splitlines()
-        _filtered_lines = []
-        for line in requirement_lines:
-            if len(line.strip()) == 0:
-                continue
-            good_line = True
-            for match in self.schema.filter_requirements_txt_matches:
-                if fnmatch(line, match):
-                    good_line = False
-                    break
-            if good_line:
-                _filtered_lines.append(line)
-        (self.schema.destination_dir / "requirements.txt").write_text("\n".join(_filtered_lines))
-
+        if self.schema.manage_pyproject:
+            pyproject_toml = (
+                self.schema.origin / self.schema.release_root / "pyproject.toml"
+            ).read_text()
+            pyproject_toml = add_dependencies_to_pyproject_toml(
+                pyproject_toml=pyproject_toml,
+                requirements_txt=filtered_requirements_txt,
+            )
+            (self.schema.destination_dir / "pyproject.toml").write_text(pyproject_toml)
         return os.EX_OK
 
     def remove_todo(self):
@@ -531,26 +516,39 @@ class Releaser:
                 )
                 packer.pack()
 
-    def add_version_json(self):
-        if not self.schema.add_version_json:
-            self.out(
-                message="add-version-json = false. Skipping version.json generation.",
-                verbosity=Verbosity.VERBOSE.value,
-            )
-            return os.EX_OK
+    def add_version(self):
+        if self.schema.add_version_json:
+            self.out("Generating version.json.", verbosity=Verbosity.NORMAL.value)
 
-        self.out("Generating version.json.", verbosity=Verbosity.NORMAL.value)
-
-        version_json = self.schema.destination_dir / "version.json"
-        major, minor, patch = self.schema.version_str.split(".")
-        version_json.write_text(
-            f"""{{
+            version_json = self.schema.destination_dir / "version.json"
+            major, minor, patch = self.schema.version_str.split(".")
+            version_json.write_text(
+                f"""{{
   "SemVer": "{self.schema.version_str}",
   "Major": {major},
   "Minor": {minor},
   "Patch": {patch}
 }}"""
-        )
+            )
+        else:
+            self.out(
+                message="add-version-json = false. Skipping version.json generation.",
+                verbosity=Verbosity.VERBOSE.value,
+            )
+        if self.schema.manage_pyproject:
+            pyproject_toml_file = self.schema.destination_dir / "pyproject.toml"
+            pyproject_toml = pyproject_toml_file.read_text()
+            if "VERSION-NDEV-SUBST-HERE" not in pyproject_toml:
+                self.out(
+                    message="no version substitution defined in pyproject.toml",
+                    verbosity=Verbosity.NORMAL.value,
+                )
+                return os.EX_DATAERR
+            pyproject_toml = pyproject_toml.replace(
+                "VERSION-NDEV-SUBST-HERE", self.schema.version_str
+            )
+            pyproject_toml_file.write_text(pyproject_toml)
+        return os.EX_OK
 
     def apply_patches(self):
         if not self.schema.patches:
@@ -578,10 +576,26 @@ class Releaser:
                     )
                     path.write_text(content, encoding="utf-8")
 
+    def generate_poetry_lock(self):
+        if self.schema.generate_poetry_lock:
+            result = subprocess.run(
+                "uv tool run poetry@2.1.3 lock",
+                shell=True,
+                capture_output=True,
+                text=True,
+                cwd=self.schema.destination_dir,
+                check=False,
+            )
+            if result.returncode != os.EX_OK:
+                raise RuntimeError(
+                    f"generating poetry lock is failed with code: {result.returncode}\n"
+                    f"stdout: [{result.stdout}]\n"
+                    f"stderr: [{result.stderr}]"
+                )
+
     # -- private methods --
 
     def _get_requirements_txt_list(self) -> list[str]:
-        requirements_path = self.schema.origin / "requirements.txt"
-        if not requirements_path.exists():
-            return []
-        return requirements_path.read_text(encoding="utf8").splitlines()
+        return get_requirements_txt(
+            working_dir=self.schema.origin, groups=self.schema.install_dependencies_with_groups
+        ).splitlines()

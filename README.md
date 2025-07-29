@@ -70,6 +70,12 @@ release-root = "releases/customer-root"
 # generate and copy requirements.txt
 copy-requirements = true
 
+# manage pyproject.toml 
+manage-pyproject = true
+
+# generate poetry lock after all steps
+generate-poetry-lock = true
+
 # generate and copy version.json
 add-version-json = true
 
