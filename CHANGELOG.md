@@ -1,3 +1,7 @@
+## [0.7.0] - 2025-11-18
+
+- add `uv` support in wheels download
+
 ## [0.6.1] - 2025-07-29
 
 - create pyproject.toml instead of requirements.txt

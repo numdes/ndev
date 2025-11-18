@@ -196,12 +196,22 @@ class Releaser:
             self.out(f"Failed to make release. Status code: {_ret_code}.")
             return _ret_code
 
-        self.copy_wheels_sources()
-        self.copy_repo_sources()
-        self.remove_todo()
+        if (_ret_code := self.copy_wheels_sources()) != os.EX_OK:
+            self.out(f"Failed to copy wheel sources. Return code: {_ret_code}")
+            return _ret_code
+
+        if (_ret_code := self.copy_repo_sources()) != os.EX_OK:
+            self.out(f"Failed to copy repo sources. Return code: {_ret_code}")
+            return _ret_code
+
+        if (_ret_code := self.remove_todo()) != os.EX_OK:
+            self.out(f"Failed to remove TODOs. Return code: {_ret_code}")
+            return _ret_code
+
         if (_ret_code := self.add_version()) != os.EX_OK:
             self.out(f"Failed to add version. Return code: {_ret_code}")
             return _ret_code
+
         self.apply_patches()
         self.generate_poetry_lock()
 
@@ -440,6 +450,12 @@ class Releaser:
                 (f for f in all_wheels_files if f.name.startswith(copy_item.origin + "-")),
                 None,
             )
+            if wheel_file is None:
+                self.out(
+                    f"Wheel {copy_item.origin} not found in downloaded wheels: {all_wheels_files}."
+                )
+                return os.EX_NOINPUT
+
             self.out(
                 message=f"Copying {wheel_file} to {self.schema.destination_dir / copy_item.destination}.",
                 verbosity=Verbosity.VERBOSE.value,

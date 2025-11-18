@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import tempfile
@@ -6,21 +7,22 @@ from fnmatch import fnmatch
 from pathlib import Path
 
 
-def get_requirements_txt(working_dir: Path, groups: list[str] | None = None) -> str:
-    if groups is None:
-        groups = []
+logger = logging.getLogger(__name__)
 
-    groups_txt = ",".join(groups)
-    with_groups = f"--with {groups_txt} " if groups_txt else ""
 
-    with tempfile.NamedTemporaryFile() as requirements_file:
-        print(f"Writing requirements file to {requirements_file.name}")
+def generate_requirements_txt(
+    working_dir: Path,
+    args: str,
+    output_file_path: Path,
+) -> None:
+    if (working_dir / "poetry.lock").exists():
+        logger.info("poetry.lock found, using poetry to generate requirements.txt")
         result = subprocess.run(
             "poetry export "
             "--without-hashes "
-            f"{with_groups}"
+            f"{args}"
             "--format requirements.txt "
-            f"--output {requirements_file.name}",
+            f"--output {output_file_path}",
             shell=True,
             capture_output=True,
             text=True,
@@ -34,6 +36,53 @@ def get_requirements_txt(working_dir: Path, groups: list[str] | None = None) -> 
                 f"stdout: [{result.stdout}]\n"
                 f"stderr: [{result.stderr}]"
             )
+        else:
+            return
+
+    if (working_dir / "uv.lock").exists():
+        logger.info("uv.lock found, using uv to generate requirements.txt")
+        result = subprocess.run(
+            "uv export "
+            "--format requirements.txt "
+            "--locked "
+            "--no-hashes "
+            f"--output-file {output_file_path}",
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=working_dir,
+            check=False,
+        )
+
+        if result.returncode != os.EX_OK:
+            raise RuntimeError(
+                f"uv export failed with exit code {result.returncode}\n"
+                f"stdout: [{result.stdout}]\n"
+                f"stderr: [{result.stderr}]"
+            )
+        else:
+            return
+
+    raise FileNotFoundError(
+        "No poetry.lock or uv.lock file found in the working directory. "
+        "Cannot generate requirements.txt."
+    )
+
+
+def get_requirements_txt(working_dir: Path, groups: list[str] | None = None) -> str:
+    if groups is None:
+        groups = []
+
+    groups_txt = ",".join(groups)
+    with_groups = f"--with {groups_txt} " if groups_txt else ""
+
+    with tempfile.NamedTemporaryFile() as requirements_file:
+        logger.debug(f"Writing requirements file to {requirements_file.name}")
+        generate_requirements_txt(
+            working_dir=working_dir,
+            args=with_groups,
+            output_file_path=Path(requirements_file.name),
+        )
 
         return Path(requirements_file.name).read_text(encoding="utf-8")
 
