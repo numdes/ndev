@@ -1,4 +1,4 @@
-## [0.7.0] - 2025-11-18
+## [0.7.1] - 2025-11-18
 
 - add `uv` support in wheels download
 

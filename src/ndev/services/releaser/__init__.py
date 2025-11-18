@@ -2,8 +2,8 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 import tempfile
+import tomllib
 
 from functools import partial
 from pathlib import Path
@@ -22,11 +22,6 @@ from ndev.shutil_ext import copytree_from_zip
 
 _SKIP_NUKE_DIRS = {".git", ".idea"}
 _BASE_WHEEL_IGNORES = ["*.so", "*.dist-info", "*.so.*", "*.libs"]
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 
 class CopyItem(BaseModel):
@@ -82,7 +77,8 @@ class ReleaserConf(BaseModel):
 
         project_dict = tomllib.loads(pyproject_toml.read_text(encoding="utf8"))
         if "tool" not in project_dict or "ndev" not in project_dict["tool"]:
-            raise ValueError("ndev section not found in pyproject.toml")
+            print(pyproject_toml.read_text(encoding="utf8"))
+            raise ValueError(f"ndev section not found in pyproject.toml, path: {from_dir}")
 
         schema = ReleaserConf(
             origin=from_dir,
