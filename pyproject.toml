@@ -13,11 +13,6 @@ dependencies = [
 ]
 scripts = { ndev = "ndev.app:main" }
 
-# TODO: move to uv backend
-#[build-system]
-#requires = ["uv>=0.6.2,<0.7"]
-#build-backend = "uv"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
