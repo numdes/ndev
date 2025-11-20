@@ -3,7 +3,7 @@ name = "ndev"
 version = "0.7.1"
 description = "Python projects management toolset"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "cleo",
     "gitpython>=3.1.44",
