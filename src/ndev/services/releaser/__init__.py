@@ -528,6 +528,8 @@ class Releaser:
                 )
                 packer.pack()
 
+        return os.EX_OK
+
     def add_version(self):
         if self.schema.add_version_json:
             self.out("Generating version.json.", verbosity=Verbosity.NORMAL.value)
