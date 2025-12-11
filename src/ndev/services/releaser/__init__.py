@@ -241,8 +241,11 @@ class Releaser:
     # -- public methods --
 
     def copy_root(self):
-        self.out("Copying root directory.", verbosity=Verbosity.NORMAL.value)
         root_dir = self.schema.origin / self.schema.release_root
+        self.out(
+            f"Copying root directory [{root_dir}]->[{self.schema.destination_dir}]",
+            verbosity=Verbosity.NORMAL.value,
+        )
         if not root_dir.exists():
             self.out(f"Root directory {root_dir} does not exist.")
             return os.EX_NOINPUT
@@ -261,7 +264,7 @@ class Releaser:
             self.out("No local files to copy.", verbosity=Verbosity.VERY_VERBOSE.value)
             return
 
-        self.out("Copying local files.", verbosity=Verbosity.NORMAL.value)
+        self.out(f"Copying local files: {self.schema.copy_local}", verbosity=Verbosity.NORMAL.value)
 
         for copy_item in self.schema.copy_local:
             self.out(
@@ -490,9 +493,13 @@ class Releaser:
             )
             if package_name:
                 package_name_dep = package_name.replace("_", "-")
-                requirement_line = next(
-                    x for x in self._get_requirements_txt_list() if f"{package_name_dep}==" in x
-                )
+                try:
+                    requirement_line = next(
+                        x for x in self._get_requirements_txt_list() if f"{package_name_dep}==" in x
+                    )
+                except StopIteration:
+                    self.out(f"Failed to find requirement {package_name_dep}.")
+                    return os.EX_NOINPUT
                 if not requirement_line:
                     self.out(f"Failed to find requirement {package_name_dep}.")
                     return os.EX_NOINPUT

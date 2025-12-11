@@ -1,3 +1,7 @@
+## [0.8.0] - 2025-12-11
+
+- allow to use source (tar.gz) distribution for wheels download
+
 ## [0.7.1] - 2025-11-18
 
 - add `uv` support in wheels download
