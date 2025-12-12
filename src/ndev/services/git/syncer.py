@@ -146,12 +146,12 @@ class GitSyncer:
                 f"Filtering refs_to_push to include only branches in {self.conf.branches_list}",
                 VERBOSE,
             )
-            _filtered_refs_to_push = []
+            filtered_refs_to_push = []
             for branch in self.conf.branches_list:
                 for ref in refs_to_push:
                     if branch in ref:
-                        _filtered_refs_to_push.append(ref)
-            refs_to_push = _filtered_refs_to_push
+                        filtered_refs_to_push.append(ref)
+            refs_to_push = filtered_refs_to_push
             self.listener.message(f"Filtered refs_to_push: {refs_to_push}", VERBOSE)
 
         return refs_to_push

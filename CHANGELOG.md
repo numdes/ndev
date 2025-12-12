@@ -1,3 +1,7 @@
+## [0.9.0] - 2025-12-12
+
+- add ignores extension for copy-repo
+
 ## [0.8.0] - 2025-12-11
 
 - allow to use source (tar.gz) distribution for wheels download

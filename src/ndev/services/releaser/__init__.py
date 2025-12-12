@@ -45,29 +45,30 @@ class PatchItem(BaseModel):
 
 
 class ReleaserConf(BaseModel):
-    origin: str | Path | None = None
-    destination_dir: Path | None = None
-    destination_repo: str | None = None
-
     release_root: str
+
+    origin: str | Path | None = Field(default=None)
+    destination_dir: Path | None = Field(default=None)
+    destination_repo: str | None = Field(default=None)
+
     common_ignores: list[str] = Field(default_factory=list)
     copy_local: list[CopyItem] = Field(default_factory=list)
     copy_wheel_src: list[CopyItem] = Field(default_factory=list)
     copy_repo_src: list[CopyItem] = Field(default_factory=list)
 
-    file_replace_prefix: str | None = Field(None)
-    copy_requirements_txt: bool = Field(False)
-    manage_pyproject: bool = Field(False)
-    generate_poetry_lock: bool = Field(False)
-    remove_todo: bool = Field(False)
+    file_replace_prefix: str | None = Field(default=None)
+    copy_requirements_txt: bool = Field(default=False)
+    manage_pyproject: bool = Field(default=False)
+    generate_poetry_lock: bool = Field(default=False)
+    remove_todo: bool = Field(default=False)
     filter_requirements_txt_matches: list[str] = Field(default_factory=list)
     install_dependencies_with_groups: list[str] = Field(default_factory=list)
     patches: list[PatchItem] = Field(default_factory=list)
-    add_version_json: bool = Field(False)
-    version_str: str | None = Field(None)
+    add_version_json: bool = Field(default=False)
+    version_str: str | None = Field(default=None)
 
-    author_email: str | None = Field(None)
-    author_name: str | None = Field(None)
+    author_email: str | None = Field(default=None)
+    author_name: str | None = Field(default=None)
 
     @staticmethod
     def load_from_dir(from_dir: Path) -> "ReleaserConf":
@@ -144,10 +145,10 @@ class Releaser:
         if self.schema.destination_dir is None and self.schema.destination_repo is None:
             raise ValueError("both dir and repo is not set")
 
-        _destination_temp_dir = None
+        destination_temp_dir = None
         if self.schema.destination_dir is None:
-            _destination_temp_dir = tempfile.TemporaryDirectory()
-            self.schema.destination_dir = Path(_destination_temp_dir.name)
+            destination_temp_dir = tempfile.TemporaryDirectory()
+            self.schema.destination_dir = Path(destination_temp_dir.name)
             result = subprocess.run(
                 f"git clone {self.schema.destination_repo} {self.schema.destination_dir}",
                 shell=True,
@@ -184,29 +185,29 @@ class Releaser:
         self.copy_root()
         self.copy_local_files()
 
-        if (_ret_code := self.manage_requirements()) != os.EX_OK:
-            self.out(f"Failed to generate requirements.txt. Return code: {_ret_code}")
-            return _ret_code
+        if (return_code := self.manage_requirements()) != os.EX_OK:
+            self.out(f"Failed to generate requirements.txt. Return code: {return_code}")
+            return return_code
 
-        if (_ret_code := self.download_wheels()) != os.EX_OK:
-            self.out(f"Failed to make release. Status code: {_ret_code}.")
-            return _ret_code
+        if (return_code := self.download_wheels()) != os.EX_OK:
+            self.out(f"Failed to make release. Status code: {return_code}.")
+            return return_code
 
-        if (_ret_code := self.copy_wheels_sources()) != os.EX_OK:
-            self.out(f"Failed to copy wheel sources. Return code: {_ret_code}")
-            return _ret_code
+        if (return_code := self.copy_wheels_sources()) != os.EX_OK:
+            self.out(f"Failed to copy wheel sources. Return code: {return_code}")
+            return return_code
 
-        if (_ret_code := self.copy_repo_sources()) != os.EX_OK:
-            self.out(f"Failed to copy repo sources. Return code: {_ret_code}")
-            return _ret_code
+        if (return_code := self.copy_repo_sources()) != os.EX_OK:
+            self.out(f"Failed to copy repo sources. Return code: {return_code}")
+            return return_code
 
-        if (_ret_code := self.remove_todo()) != os.EX_OK:
-            self.out(f"Failed to remove TODOs. Return code: {_ret_code}")
-            return _ret_code
+        if (return_code := self.remove_todo()) != os.EX_OK:
+            self.out(f"Failed to remove TODOs. Return code: {return_code}")
+            return return_code
 
-        if (_ret_code := self.add_version()) != os.EX_OK:
-            self.out(f"Failed to add version. Return code: {_ret_code}")
-            return _ret_code
+        if (return_code := self.add_version()) != os.EX_OK:
+            self.out(f"Failed to add version. Return code: {return_code}")
+            return return_code
 
         self.apply_patches()
         self.generate_poetry_lock()
@@ -233,8 +234,8 @@ class Releaser:
                 self.out(result.stderr)
                 return result.returncode
 
-        if _destination_temp_dir is not None:
-            _destination_temp_dir.cleanup()
+        if destination_temp_dir is not None:
+            destination_temp_dir.cleanup()
 
         return os.EX_OK
 
@@ -459,13 +460,13 @@ class Releaser:
                 message=f"Copying {wheel_file} to {self.schema.destination_dir / copy_item.destination}.",
                 verbosity=Verbosity.VERBOSE.value,
             )
-            _ignores = _BASE_WHEEL_IGNORES.copy()
-            _ignores += copy_item.ignores
+            ignores = _BASE_WHEEL_IGNORES.copy()
+            ignores += copy_item.ignores
             copytree_from_zip(
                 zip_path=wheel_file,
                 dst_dir=self.schema.destination_dir / copy_item.destination,
                 path_in_zip=".",
-                ignore=shutil.ignore_patterns(*_ignores),
+                ignore=shutil.ignore_patterns(*ignores),
             )
         self.wheels_dir.cleanup()
         return os.EX_OK
@@ -529,6 +530,9 @@ class Releaser:
                 schema = ReleaserConf.load_from_dir(Path(tmp_dir))
                 schema.destination_dir = self.schema.destination_dir / copy_item.destination
                 schema.copy_repo_src = []  # prevent recursion
+
+                schema.common_ignores += copy_item.ignores
+
                 packer = Releaser(
                     schema=schema,
                     listener=self.out,

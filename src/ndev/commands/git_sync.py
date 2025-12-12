@@ -48,15 +48,15 @@ class GitSyncCommand(Command):
 
         if src is None or dst is None:
             self.line(
-                "<error>Both source and destination " "git repositories must be specified.</error>"
+                "<error>Both source and destination git repositories must be specified.</error>"
             )
             return os.EX_USAGE
 
         branches = self.option("branches")
         branches_list = branches.split(",") if branches else []
 
-        _dry_run = self.option("dry-run") or (os.getenv("NDEV_DRY_RUN") is not None)
-        _keep_src_repo_dir = self.option("keep-src-repo-dir") or (
+        dry_run = self.option("dry-run") or (os.getenv("NDEV_DRY_RUN") is not None)
+        keep_src_repo_dir = self.option("keep-src-repo-dir") or (
             os.getenv("NDEV_KEEP_SRC_REPO_DIR") is not None
         )
 
@@ -64,8 +64,8 @@ class GitSyncCommand(Command):
             src_url=src,
             dst_url=dst,
             branches_list=branches_list,
-            dry_run=_dry_run,
-            keep_src_repo_dir=_keep_src_repo_dir,
+            dry_run=dry_run,
+            keep_src_repo_dir=keep_src_repo_dir,
         )
 
         git_syncer = GitSyncer(conf=git_sync_conf, listener=CommandListener(self.io))
