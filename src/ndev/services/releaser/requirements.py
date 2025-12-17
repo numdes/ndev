@@ -117,6 +117,9 @@ def add_dependencies_to_pyproject_toml(pyproject_toml: str, requirements_txt: st
         if not line:
             continue
         declaration = line.split(";")[0].strip()
+        if declaration.startswith("#"):
+            continue
+
         dependencies_txt += f'    "{declaration}",\n'
     dependencies_txt += "]"
     pyproject_toml = pyproject_toml.replace("dependencies = []", dependencies_txt)

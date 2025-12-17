@@ -170,7 +170,7 @@ wheels = [
 
 [[package]]
 name = "ndev"
-version = "0.7.1"
+version = "0.9.1"
 source = { editable = "." }
 dependencies = [
     { name = "cleo" },
