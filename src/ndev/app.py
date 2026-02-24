@@ -4,12 +4,14 @@ from cleo.application import Application
 
 from ndev.commands.git_sync import GitSyncCommand
 from ndev.commands.release import ReleaseCommand
+from ndev.commands.sbom import SbomCommand
 
 
 def main() -> int:
     app = Application(name="ndev", version=str(version("ndev")))
     app.add(ReleaseCommand())
     app.add(GitSyncCommand())
+    app.add(SbomCommand())
     exit_code = app.run()
     return exit_code
 
