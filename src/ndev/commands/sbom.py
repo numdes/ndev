@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import subprocess
 import sys
@@ -157,6 +158,66 @@ def _get_project_name(cwd: Path) -> str | None:
     ).get("name")
 
 
+def _extract_license(pkg_json: dict) -> str:
+    lic = pkg_json.get("license")
+    if isinstance(lic, str):
+        return lic
+    if isinstance(lic, dict):
+        return lic.get("type", "UNKNOWN")
+    licenses = pkg_json.get("licenses")
+    if isinstance(licenses, list) and licenses:
+        parts = [entry.get("type", "UNKNOWN") for entry in licenses if isinstance(entry, dict)]
+        return "; ".join(parts) if parts else "UNKNOWN"
+    return "UNKNOWN"
+
+
+def _parse_package_json(package_json_path: Path) -> list[Package]:
+    cwd = package_json_path.parent
+    yarn_lock = cwd / "yarn.lock"
+    if yarn_lock.exists():
+        install_cmd = ["yarn", "install", "--frozen-lockfile"]
+    else:
+        install_cmd = ["npm", "install"]
+
+    result = subprocess.run(
+        install_cmd,
+        check=False,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+
+    node_modules = cwd / "node_modules"
+    if not node_modules.is_dir():
+        return []
+
+    packages: list[Package] = []
+    seen: set[str] = set()
+
+    for pkg_json_path in node_modules.glob("*/package.json"):
+        _read_node_package(pkg_json_path, packages, seen)
+    for pkg_json_path in node_modules.glob("@*/*/package.json"):
+        _read_node_package(pkg_json_path, packages, seen)
+
+    return packages
+
+
+def _read_node_package(pkg_json_path: Path, packages: list[Package], seen: set[str]) -> None:
+    try:
+        with open(pkg_json_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return
+    name = data.get("name")
+    version = data.get("version", "0.0.0")
+    if not name or name in seen:
+        return
+    seen.add(name)
+    packages.append(Package(name=name, version=version, license=_extract_license(data)))
+
+
 class SbomCommand(Command):
     name = "sbom"
     description = "Print SBOM as CSV with dependency, version and license."
@@ -174,6 +235,7 @@ class SbomCommand(Command):
         cwd = Path.cwd()
         uv_lock = cwd / "uv.lock"
         poetry_lock = cwd / "poetry.lock"
+        package_json = cwd / "package.json"
 
         if uv_lock.exists():
             self.line("Syncing environment and collecting license metadata...")
@@ -181,8 +243,13 @@ class SbomCommand(Command):
         elif poetry_lock.exists():
             self.line("Syncing environment and collecting license metadata...")
             packages = _parse_poetry_lock(poetry_lock)
+        elif package_json.exists():
+            self.line("Installing dependencies and collecting license metadata...")
+            packages = _parse_package_json(package_json)
         else:
-            self.line("<error>No uv.lock or poetry.lock found in current directory.</error>")
+            self.line(
+                "<error>No uv.lock, poetry.lock, or package.json found in current directory.</error>"
+            )
             return os.EX_NOINPUT
 
         packages.sort(key=lambda p: p.name.lower())
