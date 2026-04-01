@@ -21,6 +21,7 @@ from ndev.shutil_ext import copytree_from_zip
 
 
 _SKIP_NUKE_DIRS = {".git", ".idea"}
+_COPY_IGNORE_PATTERNS = {"__pycache__", ".git"}
 _BASE_WHEEL_IGNORES = ["*.so", "*.dist-info", "*.so.*", "*.libs"]
 
 
@@ -256,7 +257,7 @@ class Releaser:
             src=root_dir,
             dst=self.schema.destination_dir,
             dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns("__pycache__"),
+            ignore=shutil.ignore_patterns(*_COPY_IGNORE_PATTERNS, *self.schema.common_ignores),
             copy_function=shutil.copy2,
         )
 
@@ -280,8 +281,7 @@ class Releaser:
 
             dst_path = self.schema.destination_dir / copy_item.destination
 
-            item_ignores = self.schema.common_ignores.copy()
-            item_ignores += copy_item.ignores
+            item_ignores = [*_COPY_IGNORE_PATTERNS, *self.schema.common_ignores, *copy_item.ignores]
 
             if src_path.is_file():
                 os.makedirs(dst_path, exist_ok=True)

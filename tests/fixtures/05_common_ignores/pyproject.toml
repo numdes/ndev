@@ -1,0 +1,7 @@
+[project]
+name = "scenario-05"
+version = "0.1.0"
+
+[tool.ndev]
+release-root = "release_root"
+common-ignores = ["*.log", "secret.txt"]

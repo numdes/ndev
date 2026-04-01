@@ -84,6 +84,55 @@ def test_plain_dirs_no_pyproject(fixtures_dir: Path) -> None:
         assert actual_files == expected_files
 
 
+def test_common_ignores(fixtures_dir: Path) -> None:
+    """Scenario #05: files matching common-ignores patterns are excluded from destination."""
+    app = Application()
+    fixture = fixtures_dir / "05_common_ignores"
+
+    app.add(ReleaseCommand())
+    command = app.find("release")
+    tester = CommandTester(command)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        status_code = tester.execute(f"--src {fixture} --dst {tmp_dir}")
+        assert status_code == os.EX_OK
+
+        dst = Path(tmp_dir)
+        # kept
+        assert (dst / "keep.txt").exists()
+        assert (dst / "subdir" / "nested.txt").exists()
+        # ignored by *.log
+        assert not (dst / "debug.log").exists(), "*.log should be ignored"
+        assert not (dst / "subdir" / "trace.log").exists(), "nested *.log should be ignored"
+        # ignored by exact name
+        assert not (dst / "secret.txt").exists(), "secret.txt should be ignored"
+
+
+def test_ignore_git_dir(fixtures_dir: Path) -> None:
+    """Scenario #04: .git directory in source must not appear in destination."""
+    app = Application()
+    app.add(ReleaseCommand())
+    command = app.find("release")
+    tester = CommandTester(command)
+
+    with tempfile.TemporaryDirectory() as src_dir, tempfile.TemporaryDirectory() as dst_dir:
+        src = Path(src_dir)
+        (src / "file.txt").write_text("hello")
+        (src / "subdir").mkdir()
+        (src / "subdir" / "nested.txt").write_text("nested")
+        git_dir = src / ".git"
+        git_dir.mkdir()
+        (git_dir / "HEAD").write_text("ref: refs/heads/main")
+
+        status_code = tester.execute(f"--src {src_dir} --dst {dst_dir}")
+        assert status_code == os.EX_OK
+
+        dst = Path(dst_dir)
+        assert (dst / "file.txt").read_text() == "hello"
+        assert (dst / "subdir" / "nested.txt").read_text() == "nested"
+        assert not (dst / ".git").exists(), ".git should not be copied to destination"
+
+
 def test_simple_project(fixtures_dir: Path) -> None:
     app = Application()
     origin_dir = fixtures_dir / "01_simple_project"

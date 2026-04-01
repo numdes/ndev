@@ -42,14 +42,17 @@ Basic use case is to transfer some sources codes to another repository:
 
 ```bash
     ndev release \
-        --origin . \
-        --destination git@example.com:libs/example1.git \
+        --src . \
+        --dst git@example.com:libs/example1.git \
         --author_name "$GITLAB_USER_NAME" \
         --author_email "$GITLAB_USER_EMAIL"
 ```
 
-Here `--origin` is a path to the sources you want to release,
-`--destination` is a path to the repository where you want to release the sources.
+Here `--src` is a path to the sources you want to release,
+`--dst` is a path to the repository where you want to release the sources.
+
+> **Note:** `--origin` / `--destination` still work but are deprecated.
+> Use `--src` / `--dst` instead.
 
 `--author_name` and `--author_email` are optional parameters that will be used
 to set author of the commit in the destination repository.
@@ -59,6 +62,62 @@ After running this command, `ndev` will:
 1. Wipe out all the files in the destination repository
 2. Copy all the files from the origin repository to the destination repository
 3. Commit all the changes
+
+### Scenarios
+
+#### Scenario #01 — plain directory copy
+
+When the source contains only regular files and directories (no `pyproject.toml` in the
+release root), `ndev release` copies the entire tree as-is to the destination:
+
+```bash
+ndev release --src ./src --dst ./dst
+```
+
+```
+src/                 →  dst/
+├── root_file.txt         ├── root_file.txt
+├── subdir_a/             ├── subdir_a/
+│   └── file_a.txt        │   └── file_a.txt
+└── subdir_b/             └── subdir_b/
+    └── file_b.txt            └── file_b.txt
+```
+
+See `tests/fixtures/02_plain_dirs` for the fixture and `tests/test_release_command.py::test_plain_dirs`
+for the corresponding test.
+
+#### Scenario #05 — common ignores
+
+Files matching `common-ignores` patterns in `pyproject.toml` are excluded from the
+destination during release. Patterns use glob syntax and apply to both `copy_root` and
+`copy-local` operations:
+
+```toml
+[tool.ndev]
+release-root = "release_root"
+common-ignores = ["*.log", "secret.txt"]
+```
+
+```bash
+ndev release --src ./project --dst ./dst
+```
+
+```
+project/                          dst/
+├── pyproject.toml
+└── release_root/
+    ├── keep.txt              →   ├── keep.txt
+    ├── debug.log             →   │   (excluded)
+    ├── secret.txt            →   │   (excluded)
+    └── subdir/                   └── subdir/
+        ├── nested.txt        →       └── nested.txt
+        └── trace.log         →           (excluded)
+```
+
+See `tests/fixtures/05_common_ignores` for the fixture and
+`tests/test_release_command.py::test_common_ignores` for the corresponding test.
+
+### Configuration
 
 All configuration is stored in `pyproject.toml` in `tool.ndev` section. Config sample:
 
