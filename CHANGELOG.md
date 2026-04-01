@@ -2,6 +2,7 @@
 
 - add `--src` and `--dst` aliases for `--origin` and `--destination` in release command
 - deprecate `--origin` and `--destination` options
+- allow `release` to work without `pyproject.toml` (copies source tree as-is)
 
 ## [0.9.1] - 2025-12-17
 

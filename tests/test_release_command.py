@@ -19,7 +19,69 @@ def test_no_pyproject_toml(fixtures_dir: Path) -> None:
     command = app.find("release")
     tester = CommandTester(command)
     status_code = tester.execute(f"--origin {origin_dir}")
-    assert status_code == os.EX_NOINPUT
+    assert status_code == os.EX_USAGE
+
+
+def test_plain_dirs(fixtures_dir: Path) -> None:
+    """Scenario #02: releasing a dir with files and subdirs produces the same structure."""
+    app = Application()
+    fixture = fixtures_dir / "02_plain_dirs"
+    expected_dir = fixture / "dst"
+
+    app.add(ReleaseCommand())
+    command = app.find("release")
+    tester = CommandTester(command)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        status_code = tester.execute(f"--src {fixture} --dst {tmp_dir}")
+        assert status_code == os.EX_OK
+
+        actual = tmp_dir
+        for expected_file in expected_dir.rglob("*"):
+            if expected_file.is_dir():
+                continue
+            rel = expected_file.relative_to(expected_dir)
+            actual_file = Path(actual) / rel
+            assert actual_file.exists(), f"missing {rel}"
+            assert actual_file.read_text() == expected_file.read_text(), f"content mismatch {rel}"
+
+        # no extra files
+        actual_files = {p.relative_to(actual) for p in Path(actual).rglob("*") if p.is_file()}
+        expected_files = {
+            p.relative_to(expected_dir) for p in expected_dir.rglob("*") if p.is_file()
+        }
+        assert actual_files == expected_files
+
+
+def test_plain_dirs_no_pyproject(fixtures_dir: Path) -> None:
+    """Scenario #03: same as #02 but source has no pyproject.toml — copies tree as-is."""
+    app = Application()
+    fixture = fixtures_dir / "03_plain_dirs_no_pyproject"
+    src_dir = fixture / "src"
+    expected_dir = fixture / "dst"
+
+    app.add(ReleaseCommand())
+    command = app.find("release")
+    tester = CommandTester(command)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        status_code = tester.execute(f"--src {src_dir} --dst {tmp_dir}")
+        assert status_code == os.EX_OK
+
+        actual = tmp_dir
+        for expected_file in expected_dir.rglob("*"):
+            if expected_file.is_dir():
+                continue
+            rel = expected_file.relative_to(expected_dir)
+            actual_file = Path(actual) / rel
+            assert actual_file.exists(), f"missing {rel}"
+            assert actual_file.read_text() == expected_file.read_text(), f"content mismatch {rel}"
+
+        actual_files = {p.relative_to(actual) for p in Path(actual).rglob("*") if p.is_file()}
+        expected_files = {
+            p.relative_to(expected_dir) for p in expected_dir.rglob("*") if p.is_file()
+        }
+        assert actual_files == expected_files
 
 
 def test_simple_project(fixtures_dir: Path) -> None:

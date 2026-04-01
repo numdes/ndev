@@ -74,12 +74,14 @@ class ReleaseCommand(Command):
         try:
             schema = ReleaserConf.load_from_dir(current_dir)
         except FileNotFoundError:
-            return os.EX_NOINPUT
+            schema = ReleaserConf(release_root=".", origin=current_dir)
 
         destination = self.option("dst")
         if self.option("destination") is not None:
             self._deprecated("destination", "dst")
             destination = destination or self.option("destination")
+        if destination is None:
+            return os.EX_USAGE
         if destination.startswith("git@"):
             schema.destination_repo = destination
         else:

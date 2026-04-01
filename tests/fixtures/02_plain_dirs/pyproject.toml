@@ -1,0 +1,6 @@
+[project]
+name = "scenario-02"
+version = "0.1.0"
+
+[tool.ndev]
+release-root = "src"
