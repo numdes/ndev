@@ -312,6 +312,9 @@ class Releaser:
             )
             return os.EX_OK
 
+        assert isinstance(self.schema.origin, Path)
+        assert self.schema.destination_dir is not None
+
         requirements_txt = get_requirements_txt(
             working_dir=self.schema.origin, groups=self.schema.install_dependencies_with_groups
         )
@@ -432,6 +435,7 @@ class Releaser:
                 verbosity=Verbosity.VERBOSE.value,
             )
             return os.EX_OK
+        assert self.schema.destination_dir is not None
         self.out(
             message=f"Copying wheel sources to {self.schema.destination_dir}.",
             verbosity=Verbosity.NORMAL.value,
@@ -621,6 +625,7 @@ class Releaser:
     # -- private methods --
 
     def _get_requirements_txt_list(self) -> list[str]:
+        assert isinstance(self.schema.origin, Path)
         return get_requirements_txt(
             working_dir=self.schema.origin, groups=self.schema.install_dependencies_with_groups
         ).splitlines()

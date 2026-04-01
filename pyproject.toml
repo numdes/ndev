@@ -67,6 +67,9 @@ common-ignores = [
     ".venv",
 ]
 
+[tool.mypy]
+exclude = ["src/ndev/deps"]
+
 [dependency-groups]
 dev = [
     "mypy>=1.18.2",

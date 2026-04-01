@@ -82,7 +82,7 @@ class GitSyncer:
         )
 
     def _add_remote(self, src_repo: Repository, dst_url: str) -> Remote:
-        if DESTINATION_NAME in src_repo.remotes:
+        if DESTINATION_NAME in src_repo.remotes.names():
             self.listener.message(f"Remote '{DESTINATION_NAME}' already exists. Updating URL.")
             src_repo.remotes.set_url(DESTINATION_NAME, dst_url)
         else:
