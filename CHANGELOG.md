@@ -1,3 +1,8 @@
+## [0.10.0] - 2026-04-01
+
+- add `--src` and `--dst` aliases for `--origin` and `--destination` in release command
+- deprecate `--origin` and `--destination` options
+
 ## [0.9.1] - 2025-12-17
 
 - add ignores extension for copy-repo

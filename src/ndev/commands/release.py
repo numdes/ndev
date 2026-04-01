@@ -1,4 +1,5 @@
 import os
+import warnings
 
 from pathlib import Path
 from typing import ClassVar
@@ -23,9 +24,19 @@ class ReleaseCommand(Command):
             flag=False,
         ),
         option(
+            long_name="dst",
+            description="Alias for --destination.",
+            flag=False,
+        ),
+        option(
             long_name="origin",
             short_name="I",
             description="Directory to load files from.",
+            flag=False,
+        ),
+        option(
+            long_name="src",
+            description="Alias for --origin.",
             flag=False,
         ),
         option(
@@ -45,18 +56,30 @@ class ReleaseCommand(Command):
     def __init__(self) -> None:
         super().__init__()
 
+    @staticmethod
+    def _deprecated(old: str, new: str) -> None:
+        warnings.warn(
+            f"--{old} is deprecated, use --{new} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
     def handle(self) -> int:
+        origin = self.option("src")
         if self.option("origin") is not None:
-            current_dir = Path(self.option("origin"))
-        else:
-            current_dir = Path.cwd()
+            self._deprecated("origin", "src")
+            origin = origin or self.option("origin")
+        current_dir = Path(origin) if origin is not None else Path.cwd()
 
         try:
             schema = ReleaserConf.load_from_dir(current_dir)
         except FileNotFoundError:
             return os.EX_NOINPUT
 
-        destination = self.option("destination")
+        destination = self.option("dst")
+        if self.option("destination") is not None:
+            self._deprecated("destination", "dst")
+            destination = destination or self.option("destination")
         if destination.startswith("git@"):
             schema.destination_repo = destination
         else:
