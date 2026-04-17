@@ -357,6 +357,8 @@ class Releaser:
                     sub = partial(re.sub, r"(#.*)TODO.*$", r"\1")
                     file.writelines(list(map(sub, lines)))
 
+        return os.EX_OK
+
     def download_wheels(self):
         if not self.schema.copy_wheel_src:
             self.out(
