@@ -1,3 +1,7 @@
+## [0.10.1] - 2026-04-17
+
+- fix missing return value in `remove_todo`
+
 ## [0.10.0] - 2026-04-01
 
 - add `--src` and `--dst` aliases for `--origin` and `--destination` in release command
