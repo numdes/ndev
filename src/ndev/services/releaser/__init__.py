@@ -210,8 +210,8 @@ class Releaser:
             self.out(f"Failed to add version. Return code: {return_code}")
             return return_code
 
-        self.apply_patches()
         self.generate_poetry_lock()
+        self.apply_patches()
 
         if self.schema.destination_repo is not None:
             if self.schema.author_email is None or self.schema.author_name is None:
