@@ -1,3 +1,7 @@
+## [0.10.2] - 2026-07-30
+
+- fix poetry.lock file generation
+
 ## [0.10.1] - 2026-04-17
 
 - fix missing return value in `remove_todo`
